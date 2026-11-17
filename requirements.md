@@ -19,7 +19,7 @@ Estos serán los endpoints principales para este proyecto:
 - DELETE    https://<dominio-cloudflare>/api/dish/:id      -> eliminar un plato del menú
 - POST      https://<dominio-cloudflare>/api/section       -> añadir una sección al menú
 - PUT       https://<dominio-cloudflare>/api/section/:id   -> modificar una sección del menú
-- DELETE    https://<dominio-cloudflare>/api/section       -> eliminar una sección del menú
+- DELETE    https://<dominio-cloudflare>/api/section/:id   -> eliminar una sección del menú
 
 ### Almacenamiento
 El backend de almacenamiento será el servicio Cloudflare D1. No se guardarán imágenes de platos ni de ningún otro tipo, todo el almacenamiento persistido será texto o númerico.

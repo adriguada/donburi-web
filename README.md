@@ -1,93 +1,120 @@
-# Donburi 🍚
+# Donburi 🍜
 
-Web del restaurante **Donburi**: carta digital accesible mediante código QR y panel de administración para gestionar su contenido.
+Web del restaurante de ramen **Donburi Ramen Bar**: carta digital accesible mediante código QR y panel de administración para gestionar su contenido.
+
+La especificación completa (requisitos funcionales y plan de pruebas) está en [requirements.md](requirements.md).
 
 ## Funcionalidades
 
-### Carta pública
+### Carta pública (`/`)
 - Accesible escaneando el código QR de las mesas.
-- Diseño *mobile-first*, ligero y rápido de cargar.
-- Platos organizados por secciones (entrantes, donburis, postres, bebidas…).
-- Cada plato muestra nombre, descripción, precio y, opcionalmente, alérgenos e imagen.
+- Diseño adaptado a móviles, tablets y PCs.
+- Muestra el logo del restaurante.
+- Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar y desplegar.
+- Cada plato muestra nombre, descripción y precio; los platos picantes se marcan con un icono de guindilla.
+- Las secciones vacías muestran el mensaje "Work In Progress..."; si la carta entera está vacía, el mensaje aparece en el centro de la pantalla.
+- Selector de idioma en la parte superior: español, inglés, alemán, francés y portugués.
+- Al final de la carta: dirección, teléfono, enlace a WhatsApp y enlace a Instagram del restaurante.
 
-### Panel de administración
-- Acceso protegido mediante autenticación.
-- Crear, editar, reordenar y eliminar **secciones** de la carta.
-- Crear, editar, reordenar y eliminar **platos** dentro de cada sección.
-- Marcar platos como no disponibles sin eliminarlos.
-- Los cambios se reflejan en la carta pública al instante.
+### Panel de administración (`/admin/`)
+- Acceso protegido con [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/).
+- Crear, renombrar y eliminar **secciones**.
+  - El nombre de una sección no puede repetirse en la carta.
+  - Eliminar una sección pide confirmación y elimina también todos sus platos.
+- Crear, editar y eliminar **platos** dentro de cada sección (nombre, descripción opcional, precio y si es picante).
+  - El nombre de un plato no puede repetirse dentro de la misma sección; si se intenta, se muestra un error y la carta no cambia.
 
 ## Stack tecnológico
 
-| Capa          | Tecnología                                                             |
-| ------------- | ---------------------------------------------------------------------- |
-| Frontend      | [React](https://react.dev/)                                            |
-| Hosting       | [Cloudflare Pages](https://developers.cloudflare.com/pages/)           |
-| API / backend | [Cloudflare Workers](https://developers.cloudflare.com/workers/)       |
-| Base de datos | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite)        |
+| Capa          | Tecnología                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| Frontend      | [React](https://react.dev/) + [Vite](https://vite.dev/)                                             |
+| Hosting       | [Cloudflare Workers](https://developers.cloudflare.com/workers/) (static assets)                    |
+| API / backend | [Cloudflare Workers](https://developers.cloudflare.com/workers/)                                    |
+| Base de datos | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite)                                     |
+| Autenticación | [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/)              |
 
 ## Arquitectura
 
 ```
-┌──────────────┐      ┌─────────────────────┐      ┌──────────────┐
-│   Cliente    │ ───▶ │  Cloudflare Pages   │      │              │
-│ (QR / Admin) │      │  (React SPA)        │      │ Cloudflare   │
-│              │ ───▶ │  Cloudflare Workers │ ───▶ │ D1           │
-└──────────────┘      │  (API REST)         │      │              │
-                      └─────────────────────┘      └──────────────┘
+┌──────────────┐      ┌──────────────────────────────┐      ┌──────────────┐
+│   Cliente    │      │  Cloudflare Worker           │      │              │
+│ (QR / Admin) │ ───▶ │  · static assets (React SPA) │      │ Cloudflare   │
+│              │      │  · /api/* (API REST)         │ ───▶ │ D1           │
+└──────────────┘      └──────────────────────────────┘      └──────────────┘
 ```
 
-- **Pages** sirve la aplicación React (carta pública y panel de admin).
-- **Workers** expone la API REST: lectura pública de la carta y endpoints protegidos de administración.
-- **D1** almacena secciones y platos.
+- Un único **Worker** sirve la aplicación React como static assets (carta pública y panel de admin) y expone la API REST en `/api/*`.
+- **D1** almacena secciones y platos. Solo se guarda texto y números; no se almacenan imágenes.
 
-## Modelo de datos (inicial)
+### API
 
-**sections**
-| Campo      | Tipo    | Descripción                  |
-| ---------- | ------- | ---------------------------- |
-| id         | INTEGER | Clave primaria               |
-| name       | TEXT    | Nombre de la sección         |
-| position   | INTEGER | Orden de aparición en carta  |
+| Método   | Ruta               | Descripción                    |
+| -------- | ------------------ | ------------------------------ |
+| `GET`    | `/api/menu`        | Obtener la carta en JSON       |
+| `POST`   | `/api/section`     | Añadir una sección             |
+| `PUT`    | `/api/section/:id` | Modificar una sección          |
+| `DELETE` | `/api/section/:id` | Eliminar una sección y sus platos |
+| `POST`   | `/api/dish`        | Añadir un plato                |
+| `PUT`    | `/api/dish/:id`    | Modificar un plato             |
+| `DELETE` | `/api/dish/:id`    | Eliminar un plato              |
 
-**dishes**
-| Campo       | Tipo    | Descripción                       |
-| ----------- | ------- | --------------------------------- |
-| id          | INTEGER | Clave primaria                    |
-| section_id  | INTEGER | Referencia a `sections.id`        |
-| name        | TEXT    | Nombre del plato                  |
-| description | TEXT    | Descripción                       |
-| price       | INTEGER | Precio en céntimos                |
-| allergens   | TEXT    | Lista de alérgenos (opcional)     |
-| image_url   | TEXT    | URL de la imagen (opcional)       |
-| available   | INTEGER | 1 = disponible, 0 = no disponible |
-| position    | INTEGER | Orden dentro de la sección        |
+## Modelo de datos
+
+**Section**: sección de la carta (Entrantes, Principal, Postres, Bebidas…)
+
+| Campo | Descripción                          |
+| ----- | ------------------------------------ |
+| id    | Clave primaria                       |
+| title | Nombre de la sección (único)         |
+
+**Dish**: plato, bebida o postre (Tonkotsu Ramen, HighBall, Tiramisú…)
+
+| Campo       | Descripción                                         |
+| ----------- | --------------------------------------------------- |
+| id          | Clave primaria                                      |
+| section_id  | Referencia a `Section.id`                           |
+| name        | Nombre del plato (único dentro de su sección)       |
+| description | Descripción (opcional)                              |
+| price       | Precio                                              |
+| isSpicy     | Indica si el plato es picante                       |
 
 ## Desarrollo local
 
 ### Requisitos
 - [Node.js](https://nodejs.org/) LTS
-- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) (CLI de Cloudflare)
-- Una cuenta de Cloudflare
+- Una cuenta de Cloudflare (para desplegar)
+
+[Wrangler](https://developers.cloudflare.com/workers/wrangler/) se instala como dependencia del proyecto.
 
 ### Puesta en marcha
-
-> 🚧 Pendiente de definir una vez creado el proyecto.
 
 ```bash
 # Instalar dependencias
 npm install
 
-# Crear la base de datos D1 y aplicar migraciones en local
+# Aplicar migraciones de D1 en local (cuando exista la base de datos)
 npx wrangler d1 migrations apply donburi-db --local
 
-# Arrancar el entorno de desarrollo
+# Arrancar el entorno de desarrollo (Vite + Worker con HMR)
 npm run dev
 ```
 
+Otros comandos:
+
+```bash
+npm run build        # Comprobación de tipos y build de producción
+npm run lint         # Linter (oxlint)
+npm run cf-typegen   # Regenerar tipos tras cambiar los bindings en wrangler.jsonc
+```
+
+## Tests
+
+Se prevé una batería de tests local para el Worker y el almacenamiento, otra para el cliente React y pruebas de integración con Selenium. Los casos están definidos en el plan de pruebas de [requirements.md](requirements.md).
+
 ## Despliegue
 
-El frontend se despliega en Cloudflare Pages y la API en Cloudflare Workers, ambos usando Wrangler.
+Todo (frontend y API) se despliega como un único Cloudflare Worker con Wrangler.
 
 ```bash
 # Aplicar migraciones en producción
@@ -99,11 +126,13 @@ npm run deploy
 
 ## Roadmap
 
-- [ ] Estructura inicial del proyecto (React + Workers)
+- [x] Estructura inicial del proyecto (React + Workers)
 - [ ] Esquema y migraciones de D1
 - [ ] API de lectura de la carta
 - [ ] Página pública de la carta
-- [ ] Autenticación del panel de admin
+- [ ] Selector de idioma
+- [ ] Autenticación del panel de admin con Cloudflare Access
 - [ ] CRUD de secciones y platos
+- [ ] Tests (Worker, cliente React e integración con Selenium)
 - [ ] Generación del código QR
 - [ ] Despliegue en Cloudflare
