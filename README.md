@@ -13,7 +13,7 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 - Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar y desplegar.
 - Cada plato muestra nombre, descripción y precio; los platos picantes se marcan con un icono de guindilla.
 - Las secciones vacías muestran el mensaje "Work In Progress..."; si la carta entera está vacía, el mensaje aparece en el centro de la pantalla.
-- Selector de idioma en la parte superior: español, inglés, alemán, francés y portugués.
+- *(Pendiente)* Selector de idioma en la parte superior: español, inglés, alemán, francés y portugués.
 - Al final de la carta: dirección, teléfono, enlace a WhatsApp y enlace a Instagram del restaurante.
 
 ### Panel de administración (`/admin/`)
@@ -83,9 +83,9 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 
 ### Requisitos
 - [Node.js](https://nodejs.org/) LTS
-- Una cuenta de Cloudflare (para desplegar)
+- Chromium/Chrome y chromedriver, solo para las pruebas de integración con Selenium
 
-[Wrangler](https://developers.cloudflare.com/workers/wrangler/) se instala como dependencia del proyecto.
+[Wrangler](https://developers.cloudflare.com/workers/wrangler/) se instala como dependencia del proyecto. No hace falta una cuenta de Cloudflare para desarrollar en local.
 
 ### Puesta en marcha
 
@@ -93,12 +93,18 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 # Instalar dependencias
 npm install
 
-# Aplicar migraciones de D1 en local (cuando exista la base de datos)
-npx wrangler d1 migrations apply donburi-db --local
+# Desactivar la autenticación en local (el panel de admin y la API de escritura
+# requieren Cloudflare Access, que solo existe una vez desplegado)
+cp .dev.vars.example .dev.vars
+
+# Crear la base de datos D1 local y aplicar las migraciones
+npm run db:migrate:local
 
 # Arrancar el entorno de desarrollo (Vite + Worker con HMR)
 npm run dev
 ```
+
+La carta está en `http://localhost:5173/` y el panel de administración en `http://localhost:5173/admin/`.
 
 Otros comandos:
 
@@ -108,13 +114,29 @@ npm run lint         # Linter (oxlint)
 npm run cf-typegen   # Regenerar tipos tras cambiar los bindings en wrangler.jsonc
 ```
 
+### Datos del restaurante
+
+La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram son valores de ejemplo en [`src/config.ts`](src/config.ts). El logo es un marcador provisional en [`src/components/Logo.tsx`](src/components/Logo.tsx).
+
 ## Tests
 
-Se prevé una batería de tests local para el Worker y el almacenamiento, otra para el cliente React y pruebas de integración con Selenium. Los casos están definidos en el plan de pruebas de [requirements.md](requirements.md).
+```bash
+npm test              # Tests del Worker + D1 y del cliente React
+npm run test:worker   # Solo la API (se ejecuta en workerd con una D1 local)
+npm run test:client   # Solo los componentes React (jsdom)
+npm run test:e2e      # Pruebas de integración con Selenium (PIC1–PIC3, PIA1–PIA8)
+npx vitest run test/worker/api.test.ts           # Un único fichero
+npx vitest run --project worker -t "duplicate"   # Tests cuyo nombre coincide
+```
+
+Las pruebas de Selenium arrancan su propio servidor de desarrollo (puerto 5317) con una base de datos D1 local independiente (`.wrangler/e2e-state`) y Chromium en modo headless. Por defecto usan `/usr/bin/chromium` y `/usr/bin/chromedriver`; se pueden cambiar con las variables `CHROME_BIN` y `CHROMEDRIVER_PATH`.
 
 ## Despliegue
 
-Todo (frontend y API) se despliega como un único Cloudflare Worker con Wrangler.
+Todo (frontend y API) se despliega como un único Cloudflare Worker con Wrangler. Antes del primer despliegue:
+
+1. Crear la base de datos con `npx wrangler d1 create donburi-db` y copiar su `database_id` en `wrangler.jsonc`.
+2. Crear una aplicación de Cloudflare Access que proteja `/admin*`, `/api/section*` y `/api/dish*`, y rellenar `ACCESS_TEAM_DOMAIN` y `ACCESS_AUD` en `wrangler.jsonc`. El Worker verifica el token de Access en cada petición de administración y las rechaza si estas variables no están configuradas.
 
 ```bash
 # Aplicar migraciones en producción
@@ -127,12 +149,12 @@ npm run deploy
 ## Roadmap
 
 - [x] Estructura inicial del proyecto (React + Workers)
-- [ ] Esquema y migraciones de D1
-- [ ] API de lectura de la carta
-- [ ] Página pública de la carta
+- [x] Esquema y migraciones de D1
+- [x] API de lectura de la carta
+- [x] Página pública de la carta
 - [ ] Selector de idioma
-- [ ] Autenticación del panel de admin con Cloudflare Access
-- [ ] CRUD de secciones y platos
-- [ ] Tests (Worker, cliente React e integración con Selenium)
+- [x] Autenticación del panel de admin con Cloudflare Access (verificación del token en el Worker)
+- [x] CRUD de secciones y platos
+- [x] Tests (Worker, cliente React e integración con Selenium)
 - [ ] Generación del código QR
 - [ ] Despliegue en Cloudflare

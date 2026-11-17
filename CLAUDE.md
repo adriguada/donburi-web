@@ -4,44 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Digital menu (carta) web app for the Donburi Ramen Bar: a public mobile-first menu reached by QR code, plus an `/admin/` panel to manage sections and dishes. Project docs (`README.md`, `requirements.md`) are written in Spanish.
+Digital menu (carta) web app for the Donburi Ramen Bar: a public mobile-first menu reached by QR code (`/`), plus an `/admin/` panel to manage sections and dishes. Project docs (`README.md`, `requirements.md`) and all user-facing UI/API text are in Spanish.
 
-The repo is currently the `create-cloudflare` React + Vite + Worker scaffold; `src/App.tsx` and `worker/index.ts` are still template placeholders. The roadmap is in `README.md`.
+`requirements.md` is the source of truth for the spec; `README.md` summarizes it. Implement only what `requirements.md` specifies and ask the user before adding anything beyond it (especially auth-related work). The language switcher (CL1.4) is intentionally not implemented yet.
 
 ## Commands
 
 ```bash
-npm run dev          # Vite dev server; runs the Worker in workerd via @cloudflare/vite-plugin (HMR for both)
-npm run build        # tsc -b (all three tsconfig projects) + vite build
-npm run lint         # oxlint (config: .oxlintrc.json)
-npm run preview      # build + vite preview
-npm run deploy       # build + wrangler deploy
-npm run cf-typegen   # regenerate worker-configuration.d.ts after changing bindings in wrangler.jsonc
+npm run dev               # Vite + Worker in workerd via @cloudflare/vite-plugin (HMR for both)
+npm run db:migrate:local  # apply migrations/ to the local D1 (.wrangler/state)
+npm run build             # tsc -b (all tsconfig projects, including tests) + vite build
+npm run lint              # oxlint
+npm test                  # worker + client Vitest projects
+npm run test:e2e          # Selenium suite (starts its own dev server)
+npx vitest run test/worker/api.test.ts          # single file
+npx vitest run --project client -t "collapse"   # by test name
+npm run cf-typegen        # regenerate worker-configuration.d.ts after editing wrangler.jsonc
 ```
 
-Planned D1 migration commands (DB name `donburi-db`, not yet configured in `wrangler.jsonc`):
-`npx wrangler d1 migrations apply donburi-db --local` / `--remote`.
-
-No test runner is set up yet. `requirements.md` calls for local tests of the Workers + D1 storage and the React client, plus Selenium integration tests (cases PIC1–3, PIA1–8).
+Local dev needs `.dev.vars` with `DEV_AUTH_BYPASS=true` (copy `.dev.vars.example`); without it, admin routes return 500 because Access is not configured. Do not deploy: the user has no Cloudflare account yet (`database_id` and `ACCESS_*` vars in `wrangler.jsonc` are placeholders).
 
 ## Architecture
 
-Single Cloudflare Worker deployment (`wrangler.jsonc`, `main: worker/index.ts`):
-- **Static assets**: the Vite-built React SPA, served with `not_found_handling: "single-page-application"` so client routes like `/admin/` fall back to `index.html`.
-- **API**: `worker/index.ts` handles `/api/*`. Anything else not matched by assets returns 404.
-- **Storage**: Cloudflare D1 (to be added as a binding). Text/numeric data only — no image storage.
-- **Admin auth**: Cloudflare Access (not implemented in app code).
+Single Cloudflare Worker (`wrangler.jsonc`, `main: worker/index.ts`) serving the Vite-built SPA as static assets plus the JSON API. `run_worker_first` routes `/api/*` and `/admin*` through the Worker; everything else is served straight from assets with SPA fallback. The Worker serves `/admin` via `env.ASSETS.fetch` only after auth passes.
 
-TypeScript is split into three project references: `tsconfig.app.json` (`src/`, browser), `tsconfig.node.json` (Vite config), `tsconfig.worker.json` (`worker/`, typed with the generated `worker-configuration.d.ts` `Env`). Keep worker code out of `src/` and vice versa.
+- `worker/index.ts`: router and HTTP mapping. `GET /api/menu` is public; `POST /api/section|dish` and `PUT|DELETE /api/section|dish/:id` require admin auth. Errors are `{ error: ApiErrorCode, message }` with Spanish messages that the admin UI shows as-is.
+- `worker/auth.ts`: Cloudflare Access JWT verification with `jose` (header `Cf-Access-Jwt-Assertion`, falling back to the `CF_Authorization` cookie; checks issuer `https://<ACCESS_TEAM_DOMAIN>` and audience `ACCESS_AUD`). Fails closed when the vars are empty. `DEV_AUTH_BYPASS` is for local use only.
+- `worker/db.ts`: D1 queries. Uniqueness (section title globally, dish name per section, both case-insensitive) is enforced by `UNIQUE ... COLLATE NOCASE` constraints and mapped to 409. Prices are stored as `price_cents` but exposed in the API as euros.
+- `worker/validation.ts`: request body parsing.
+- `shared/types.ts`: API types imported by both `worker/` and `src/`.
+- `src/`: no router library; `App.tsx` picks `MenuPage` or `AdminPage` from `window.location.pathname`. Admin components reload the whole menu after every change. Restaurant contact details and the logo are placeholders in `src/config.ts` and `src/components/Logo.tsx`.
 
-### Planned API (from requirements.md)
-- `GET /api/menu` — full menu as JSON
-- `POST /api/dish`, `PUT /api/dish/:id`, `DELETE /api/dish/:id`
-- `POST /api/section`, `PUT /api/section/:id`, `DELETE /api/section/:id`
+TypeScript project references: `tsconfig.app.json` (src + shared), `tsconfig.worker.json` (worker + shared + test/worker, typed with the generated `Env` and `@cloudflare/vitest-plugin/types`), `tsconfig.test.json` (test/client, test/e2e), `tsconfig.node.json` (vite.config.ts).
 
-### Domain rules (from requirements.md)
-- **Section**: `id`, `title`. Titles must be unique across the menu. Deleting a section requires confirmation and cascades to its dishes.
-- **Dish**: `id`, `section_id`, `name`, `description` (optional), `price`, `isSpicy`. Names must be unique within a section; a rejected duplicate must leave the menu unchanged.
-- Public menu: logo, collapsible sections, chili icon on spicy dishes, "Work In Progress..." shown for an empty section and centered for an empty menu, footer with address / Instagram / phone / WhatsApp link, language switcher at the top (ES, EN, DE, FR, PT).
+## Tests
 
-`requirements.md` is the source of truth for the spec; `README.md` summarizes it.
+All three suites are Vitest projects in `vitest.config.ts`. Name tests after the requirement IDs they cover (e.g. CL1.2.4, AD1.1.3.1, PIA5).
+- **worker** (`test/worker/`): runs in workerd via `@cloudflare/vitest-plugin` (the renamed `vitest-pool-workers`). `setup.ts` applies migrations and clears the tables before each test. `helpers.call()` invokes the Worker's fetch handler directly and accepts `envOverrides` to test auth.
+- **client** (`test/client/`): React Testing Library in jsdom, with `fetch` stubbed by `fetch-mock.ts` (routes keyed by `"METHOD /path"`).
+- **e2e** (`test/e2e/`): selenium-webdriver with headless Chromium. `global-setup.ts` applies migrations to `.wrangler/e2e-state` and runs `vite` on port 5317 with `E2E_PERSIST_DIR` (read in `vite.config.ts`), `CLOUDFLARE_INCLUDE_PROCESS_ENV=true` and `DEV_AUTH_BYPASS=true`. Tests seed and reset data through the API. Each test case maps to PIC1–3 / PIA1–8 in `requirements.md`.

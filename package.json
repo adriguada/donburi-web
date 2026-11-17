@@ -9,21 +9,36 @@
     "lint": "oxlint",
     "preview": "npm run build && vite preview",
     "deploy": "npm run build && wrangler deploy",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types --strict-vars=false",
+    "test": "vitest run --project worker --project client",
+    "test:watch": "vitest --project worker --project client",
+    "test:worker": "vitest run --project worker",
+    "test:client": "vitest run --project client",
+    "test:e2e": "vitest run --project e2e",
+    "db:migrate:local": "wrangler d1 migrations apply donburi-db --local"
   },
   "dependencies": {
+    "jose": "^6.2.17",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.70.0",
+    "@cloudflare/vitest-plugin": "^1.8.4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.12",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/selenium-webdriver": "^4.35.7",
     "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^29.1.1",
     "oxlint": "^1.90.0",
+    "selenium-webdriver": "^4.51.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.6",
+    "vitest": "^4.1.12",
     "wrangler": "^4.164.0"
   }
 }
