@@ -102,8 +102,8 @@ describe("Worker routes behind Access (AD1.2)", () => {
     ["POST", "/api/section", { title: "Ramen" }],
     ["PUT", "/api/section/1", { title: "Ramen" }],
     ["DELETE", "/api/section/1", undefined],
-    ["POST", "/api/dish", { sectionId: 1, name: "Shoyu", price: 1, isSpicy: false }],
-    ["PUT", "/api/dish/1", { name: "Shoyu", price: 1, isSpicy: false }],
+    ["POST", "/api/dish", { sectionId: 1, name: "Shoyu", price: 1, spiciness: 0 }],
+    ["PUT", "/api/dish/1", { name: "Shoyu", price: 1, spiciness: 0 }],
     ["DELETE", "/api/dish/1", undefined],
     ["PUT", "/api/section/order", { sectionIds: [] }],
   ])("rejects %s %s without a token", async (method, path, body) => {

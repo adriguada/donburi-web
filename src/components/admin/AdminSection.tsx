@@ -127,7 +127,7 @@ export function AdminSection({ section, onChanged }: Props) {
                   <span className="dish-name" data-testid="admin-dish-name">
                     {dish.name}
                   </span>
-                  {dish.isSpicy && <SpicyIcon />}
+                  <SpicyIcon level={dish.spiciness} />
                   <span className="dish-price">{formatPrice(dish.price)}</span>
                   {dish.description && <p className="dish-description">{dish.description}</p>}
                 </div>

@@ -127,7 +127,7 @@ describe("Panel de administración (PIA)", () => {
     expect(await readMenu(driver)).toEqual([
       {
         title: "Ramen tradicional",
-        dishes: RAMEN.map((dish) => ({ name: dish.name, spicy: false })),
+        dishes: RAMEN.map((dish) => ({ name: dish.name, peppers: 0 })),
         emptyMessage: null,
       },
     ]);
@@ -192,21 +192,21 @@ describe("Panel de administración (PIA)", () => {
     expect(await getMenu()).toEqual(before);
   });
 
-  it("PIA8: marcar un plato como picante muestra la guindilla en la carta", async () => {
+  it("PIA8: asignar un nivel de picante a un plato muestra ese número de guindillas en la carta", async () => {
     await seedSection("Ramen", RAMEN);
     await openAdmin(driver);
 
     const form = await openEditDishForm("Ramen", "Miso");
-    await form.findElement(By.css("input[name=isSpicy]")).click();
+    await form.findElement(By.css("[data-testid=spiciness-option-2]")).click();
     await form.findElement(By.css("button[type=submit]")).click();
     await driver.wait(until.stalenessOf(form), 10_000);
 
     await openMenu(driver);
     const [ramen] = await readMenu(driver);
     expect(ramen.dishes).toEqual([
-      { name: "Shoyu", spicy: false },
-      { name: "Miso", spicy: true },
-      { name: "Tonkotsu", spicy: false },
+      { name: "Shoyu", peppers: 0 },
+      { name: "Miso", peppers: 2 },
+      { name: "Tonkotsu", peppers: 0 },
     ]);
   });
 

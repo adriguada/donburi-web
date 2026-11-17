@@ -7,8 +7,11 @@ export interface Dish {
   description: string | null;
   /** Price in euros (e.g. 12.5). Stored as integer cents in D1. */
   price: number;
-  isSpicy: boolean;
+  /** Number of hot peppers shown next to the dish: 0 (not spicy) to MAX_SPICINESS. */
+  spiciness: number;
 }
+
+export const MAX_SPICINESS = 3;
 
 export interface Section {
   id: number;
@@ -33,7 +36,8 @@ export interface DishInput {
   name: string;
   description?: string | null;
   price: number;
-  isSpicy: boolean;
+  /** Integer from 0 to MAX_SPICINESS. Defaults to 0 when omitted. */
+  spiciness?: number;
 }
 
 export interface NewDishInput extends DishInput {

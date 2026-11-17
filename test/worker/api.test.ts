@@ -13,15 +13,15 @@ describe("GET /api/menu", () => {
   it("returns sections in creation order with their dishes (CL1.2)", async () => {
     const starters = await createSection("Entrantes");
     const ramen = await createSection("Ramen");
-    await createDish(ramen.id, "Tonkotsu", { description: "Caldo de cerdo", price: 13.5, isSpicy: false });
-    await createDish(ramen.id, "Tantanmen", { price: 14, isSpicy: true });
+    await createDish(ramen.id, "Tonkotsu", { description: "Caldo de cerdo", price: 13.5, spiciness: 0 });
+    await createDish(ramen.id, "Tantanmen", { price: 14, spiciness: 2 });
 
     const menu = await getMenu();
     expect(menu.sections.map((s) => s.title)).toEqual(["Entrantes", "Ramen"]);
     expect(menu.sections[0]).toEqual({ id: starters.id, title: "Entrantes", dishes: [] });
     expect(menu.sections[1].dishes).toEqual([
-      expect.objectContaining({ name: "Tonkotsu", description: "Caldo de cerdo", price: 13.5, isSpicy: false, sectionId: ramen.id }),
-      expect.objectContaining({ name: "Tantanmen", description: null, price: 14, isSpicy: true }),
+      expect.objectContaining({ name: "Tonkotsu", description: "Caldo de cerdo", price: 13.5, spiciness: 0, sectionId: ramen.id }),
+      expect.objectContaining({ name: "Tantanmen", description: null, price: 14, spiciness: 2 }),
     ]);
   });
 
@@ -125,7 +125,7 @@ describe("dishes", () => {
       name: "Tantanmen",
       description: "Picante con sésamo",
       price: 14.9,
-      isSpicy: true,
+      spiciness: 2,
     });
     expect(response.status).toBe(201);
     expect(await response.json()).toEqual({
@@ -134,26 +134,44 @@ describe("dishes", () => {
       name: "Tantanmen",
       description: "Picante con sésamo",
       price: 14.9,
-      isSpicy: true,
+      spiciness: 2,
     });
+  });
+
+  it.each([0, 1, 2, 3])("stores a spiciness of %i hot peppers", async (spiciness) => {
+    const section = await createSection("Ramen");
+    const response = await call("POST", "/api/dish", { sectionId: section.id, name: "Tantanmen", price: 14, spiciness });
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ spiciness });
+    expect((await getMenu()).sections[0].dishes[0].spiciness).toBe(spiciness);
+  });
+
+  it("defaults spiciness to 0 when omitted", async () => {
+    const section = await createSection("Bebidas");
+    const response = await call("POST", "/api/dish", { sectionId: section.id, name: "Agua", price: 2 });
+    expect(await response.json()).toMatchObject({ spiciness: 0 });
   });
 
   it("treats the description as optional", async () => {
     const section = await createSection("Bebidas");
-    const response = await call("POST", "/api/dish", { sectionId: section.id, name: "Agua", price: 2, isSpicy: false });
+    const response = await call("POST", "/api/dish", { sectionId: section.id, name: "Agua", price: 2, spiciness: 0 });
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({ description: null });
   });
 
-  it("validates name, price, isSpicy and sectionId", async () => {
+  it("validates name, price, spiciness and sectionId", async () => {
     const section = await createSection("Ramen");
-    const valid = { sectionId: section.id, name: "Shoyu", price: 12, isSpicy: false };
+    const valid = { sectionId: section.id, name: "Shoyu", price: 12, spiciness: 0 };
     const invalid = [
       { ...valid, name: "" },
       { ...valid, price: undefined },
       { ...valid, price: -1 },
       { ...valid, price: "12" },
-      { ...valid, isSpicy: "yes" },
+      { ...valid, spiciness: "yes" },
+      { ...valid, spiciness: true },
+      { ...valid, spiciness: -1 },
+      { ...valid, spiciness: 4 },
+      { ...valid, spiciness: 1.5 },
       { ...valid, sectionId: undefined },
       { ...valid, description: 42 },
     ];
@@ -164,14 +182,14 @@ describe("dishes", () => {
   });
 
   it("returns 404 when the section does not exist", async () => {
-    const response = await call("POST", "/api/dish", { sectionId: 999, name: "Shoyu", price: 12, isSpicy: false });
+    const response = await call("POST", "/api/dish", { sectionId: 999, name: "Shoyu", price: 12, spiciness: 0 });
     expect(response.status).toBe(404);
   });
 
   it("rejects a duplicate name in the same section (AD1.1.2.2.2.1.1)", async () => {
     const section = await createSection("Ramen");
     await createDish(section.id, "Shoyu");
-    const response = await call("POST", "/api/dish", { sectionId: section.id, name: "shoyu", price: 1, isSpicy: true });
+    const response = await call("POST", "/api/dish", { sectionId: section.id, name: "shoyu", price: 1, spiciness: 2 });
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "DISH_EXISTS",
@@ -184,18 +202,18 @@ describe("dishes", () => {
     const lunch = await createSection("Menú del día");
     const dinner = await createSection("Cena");
     await createDish(lunch.id, "Gyozas");
-    const response = await call("POST", "/api/dish", { sectionId: dinner.id, name: "Gyozas", price: 6, isSpicy: false });
+    const response = await call("POST", "/api/dish", { sectionId: dinner.id, name: "Gyozas", price: 6, spiciness: 0 });
     expect(response.status).toBe(201);
   });
 
-  it("updates name, description, price and isSpicy (AD1.1.2.2.2)", async () => {
+  it("updates name, description, price and spiciness (AD1.1.2.2.2)", async () => {
     const section = await createSection("Ramen");
     const dish = await createDish(section.id, "Shoyu", { description: "Clásico", price: 12 });
     const response = await call("PUT", `/api/dish/${dish.id}`, {
       name: "Shoyu especial",
       description: null,
       price: 13.25,
-      isSpicy: true,
+      spiciness: 2,
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -204,7 +222,7 @@ describe("dishes", () => {
       name: "Shoyu especial",
       description: null,
       price: 13.25,
-      isSpicy: true,
+      spiciness: 2,
     });
   });
 
@@ -214,7 +232,7 @@ describe("dishes", () => {
     const miso = await createDish(section.id, "Miso", { price: 12 });
     const before = await getMenu();
 
-    const response = await call("PUT", `/api/dish/${miso.id}`, { name: "Shoyu", price: 99, isSpicy: true });
+    const response = await call("PUT", `/api/dish/${miso.id}`, { name: "Shoyu", price: 99, spiciness: 2 });
     expect(response.status).toBe(409);
     expect(await getMenu()).toEqual(before);
   });
@@ -228,7 +246,7 @@ describe("dishes", () => {
   });
 
   it("returns 404 when updating a missing dish", async () => {
-    expect((await call("PUT", "/api/dish/999", { name: "X", price: 1, isSpicy: false })).status).toBe(404);
+    expect((await call("PUT", "/api/dish/999", { name: "X", price: 1, spiciness: 0 })).status).toBe(404);
   });
 });
 

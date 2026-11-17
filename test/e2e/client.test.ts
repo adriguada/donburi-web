@@ -30,7 +30,7 @@ describe("Carta pública (PIC)", () => {
     await seedSection("Ramen", [
       { name: "Shoyu", description: "Caldo de soja", price: 12 },
       { name: "Miso", price: 12.5 },
-      { name: "Tantanmen", price: 14, isSpicy: true },
+      { name: "Tantanmen", price: 14, spiciness: 3 },
     ]);
     await seedSection("Postres");
 
@@ -39,9 +39,9 @@ describe("Carta pública (PIC)", () => {
       {
         title: "Ramen",
         dishes: [
-          { name: "Shoyu", spicy: false },
-          { name: "Miso", spicy: false },
-          { name: "Tantanmen", spicy: true },
+          { name: "Shoyu", peppers: 0 },
+          { name: "Miso", peppers: 0 },
+          { name: "Tantanmen", peppers: 3 },
         ],
         emptyMessage: null,
       },

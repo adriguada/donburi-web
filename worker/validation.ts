@@ -1,4 +1,4 @@
-import type { DishInput, NewDishInput, SectionInput, SectionOrderInput } from "../shared/types";
+import { MAX_SPICINESS, type DishInput, type NewDishInput, type SectionInput, type SectionOrderInput } from "../shared/types";
 
 export const MAX_TITLE_LENGTH = 100;
 export const MAX_DESCRIPTION_LENGTH = 500;
@@ -73,12 +73,12 @@ export function parseDishInput(body: unknown): Parsed<DishInput> {
     return { ok: false, message: `El campo "price" debe ser un número entre 0 y ${MAX_PRICE}.` };
   }
 
-  const isSpicy = body.isSpicy ?? false;
-  if (typeof isSpicy !== "boolean") {
-    return { ok: false, message: 'El campo "isSpicy" debe ser true o false.' };
+  const spiciness = body.spiciness ?? 0;
+  if (typeof spiciness !== "number" || !Number.isInteger(spiciness) || spiciness < 0 || spiciness > MAX_SPICINESS) {
+    return { ok: false, message: `El campo "spiciness" debe ser un número entero entre 0 y ${MAX_SPICINESS}.` };
   }
 
-  return { ok: true, value: { name: name.value, description, price, isSpicy } };
+  return { ok: true, value: { name: name.value, description, price, spiciness } };
 }
 
 export function parseNewDishInput(body: unknown): Parsed<NewDishInput> {

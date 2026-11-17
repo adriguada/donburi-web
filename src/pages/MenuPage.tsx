@@ -31,7 +31,7 @@ export function MenuPage() {
         data-visible={logoVisible}
       >
         <div className="menu-header-inner">
-          <Logo />
+          <Logo variant="light" />
         </div>
       </header>
       <div className="page menu-body">
@@ -51,8 +51,8 @@ export function MenuPage() {
               state.menu.sections.map((section) => <MenuSection key={section.id} section={section} />)
             ))}
         </main>
-        <Footer />
       </div>
+      <Footer />
     </div>
   );
 }

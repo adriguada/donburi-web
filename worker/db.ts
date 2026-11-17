@@ -12,13 +12,13 @@ interface DishRow {
   name: string;
   description: string | null;
   price_cents: number;
-  is_spicy: number;
+  spiciness: number;
 }
 
 /** Result of a write: the stored entity, or why it could not be written. */
 export type WriteResult<T> = { ok: true; value: T } | { ok: false; reason: "not_found" | "conflict" };
 
-const DISH_COLUMNS = "id, section_id, name, description, price_cents, is_spicy";
+const DISH_COLUMNS = "id, section_id, name, description, price_cents, spiciness";
 
 function toDish(row: DishRow): Dish {
   return {
@@ -27,7 +27,7 @@ function toDish(row: DishRow): Dish {
     name: row.name,
     description: row.description,
     price: row.price_cents / 100,
-    isSpicy: row.is_spicy === 1,
+    spiciness: row.spiciness,
   };
 }
 
@@ -126,10 +126,10 @@ export async function createDish(db: D1Database, input: NewDishInput): Promise<W
   try {
     const row = await db
       .prepare(
-        `INSERT INTO dishes (section_id, name, description, price_cents, is_spicy)
+        `INSERT INTO dishes (section_id, name, description, price_cents, spiciness)
          VALUES (?, ?, ?, ?, ?) RETURNING ${DISH_COLUMNS}`,
       )
-      .bind(input.sectionId, input.name, input.description ?? null, toCents(input.price), input.isSpicy ? 1 : 0)
+      .bind(input.sectionId, input.name, input.description ?? null, toCents(input.price), input.spiciness ?? 0)
       .first<DishRow>();
     return { ok: true, value: toDish(row!) };
   } catch (error) {
@@ -142,10 +142,10 @@ export async function updateDish(db: D1Database, id: number, input: DishInput): 
   try {
     const row = await db
       .prepare(
-        `UPDATE dishes SET name = ?, description = ?, price_cents = ?, is_spicy = ?
+        `UPDATE dishes SET name = ?, description = ?, price_cents = ?, spiciness = ?
          WHERE id = ? RETURNING ${DISH_COLUMNS}`,
       )
-      .bind(input.name, input.description ?? null, toCents(input.price), input.isSpicy ? 1 : 0, id)
+      .bind(input.name, input.description ?? null, toCents(input.price), input.spiciness ?? 0, id)
       .first<DishRow>();
     if (!row) return { ok: false, reason: "not_found" };
     return { ok: true, value: toDish(row) };

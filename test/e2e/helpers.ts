@@ -48,7 +48,7 @@ export interface SeedDish {
   name: string;
   description?: string;
   price?: number;
-  isSpicy?: boolean;
+  spiciness?: number;
 }
 
 export async function seedSection(title: string, dishes: SeedDish[] = []): Promise<number> {
@@ -59,7 +59,7 @@ export async function seedSection(title: string, dishes: SeedDish[] = []): Promi
       name: dish.name,
       description: dish.description ?? null,
       price: dish.price ?? 10,
-      isSpicy: dish.isSpicy ?? false,
+      spiciness: dish.spiciness ?? 0,
     });
   }
   return section.id;
@@ -86,7 +86,8 @@ export async function waitUntil<T>(driver: WebDriver, condition: () => Promise<T
 
 export interface RenderedSection {
   title: string;
-  dishes: { name: string; spicy: boolean }[];
+  /** peppers: number of hot peppers shown next to the dish (0–3). */
+  dishes: { name: string; peppers: number }[];
   emptyMessage: string | null;
 }
 
@@ -94,6 +95,16 @@ export interface RenderedSection {
 export async function openMenu(driver: WebDriver): Promise<void> {
   await driver.get(`${baseUrl}/`);
   await waitFor(driver, "[data-testid=menu-empty], [data-testid=menu-section]");
+}
+
+async function peppersOf(dish: WebElement): Promise<number> {
+  const icons = await dish.findElements(By.css("[data-testid=spicy-icon]"));
+  if (icons.length === 0) return 0;
+  const text = await icons[0].getText();
+  const level = Number(await icons[0].getAttribute("data-level"));
+  // The visible text must contain one pepper per level.
+  if ([...text.matchAll(/🌶/gu)].length !== level) throw new Error(`"${text}" does not show ${level} peppers`);
+  return level;
 }
 
 export async function readMenu(driver: WebDriver): Promise<RenderedSection[]> {
@@ -104,7 +115,7 @@ export async function readMenu(driver: WebDriver): Promise<RenderedSection[]> {
     for (const dish of await section.findElements(By.css("[data-testid=dish]"))) {
       dishes.push({
         name: await dish.findElement(By.css("[data-testid=dish-name]")).getText(),
-        spicy: (await dish.findElements(By.css("[data-testid=spicy-icon]"))).length > 0,
+        peppers: await peppersOf(dish),
       });
     }
     const empty = await section.findElements(By.css("[data-testid=section-empty]"));

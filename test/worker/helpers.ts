@@ -32,14 +32,14 @@ export async function createSection(title: string): Promise<{ id: number; title:
 export async function createDish(
   sectionId: number,
   name: string,
-  extra: { description?: string | null; price?: number; isSpicy?: boolean } = {},
+  extra: { description?: string | null; price?: number; spiciness?: number } = {},
 ): Promise<{ id: number; name: string }> {
   const response = await call("POST", "/api/dish", {
     sectionId,
     name,
     description: extra.description ?? null,
     price: extra.price ?? 10,
-    isSpicy: extra.isSpicy ?? false,
+    spiciness: extra.spiciness ?? 0,
   });
   if (response.status !== 201) throw new Error(`createDish failed: ${response.status}`);
   return response.json();

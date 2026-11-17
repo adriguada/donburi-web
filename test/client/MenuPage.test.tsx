@@ -12,8 +12,8 @@ const menu: Menu = {
       id: 1,
       title: "Ramen",
       dishes: [
-        { id: 1, sectionId: 1, name: "Tonkotsu", description: "Caldo de cerdo cremoso", price: 13.5, isSpicy: false },
-        { id: 2, sectionId: 1, name: "Tantanmen", description: null, price: 14, isSpicy: true },
+        { id: 1, sectionId: 1, name: "Tonkotsu", description: "Caldo de cerdo cremoso", price: 13.5, spiciness: 0 },
+        { id: 2, sectionId: 1, name: "Tantanmen", description: null, price: 14, spiciness: 2 },
       ],
     },
     { id: 2, title: "Postres", dishes: [] },
@@ -51,11 +51,12 @@ describe("MenuPage", () => {
     expect(within(dishes[1]).queryByTestId("dish-description")).not.toBeInTheDocument();
   });
 
-  it("marks only spicy dishes with the chili icon (CL1.2.2)", async () => {
+  it("shows as many chili icons as the dish spiciness, none for 0 (CL1.2.2)", async () => {
     renderWithMenu(menu);
     const dishes = await screen.findAllByTestId("dish");
-    expect(within(dishes[0]).queryByRole("img", { name: "Picante" })).not.toBeInTheDocument();
-    expect(within(dishes[1]).getByRole("img", { name: "Picante" })).toBeInTheDocument();
+    expect(within(dishes[0]).queryByRole("img", { name: /picante/i })).not.toBeInTheDocument();
+    const peppers = within(dishes[1]).getByRole("img", { name: "Picante: 2 guindillas de 3" });
+    expect(peppers.textContent).toBe("🌶️🌶️");
   });
 
   it("shows Work In Progress in an empty section (CL1.2.5)", async () => {
@@ -77,6 +78,10 @@ describe("MenuPage", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(icon()).toHaveAttribute("data-state", "collapsed"); // '+' icon
     expect(screen.getByText("Tonkotsu")).not.toBeVisible();
+    // The content stays mounted so the height can animate (smooth transition).
+    const content = document.getElementById(toggle.getAttribute("aria-controls")!)!;
+    expect(content).toHaveAttribute("data-expanded", "false");
+    expect(content).toHaveAttribute("inert");
 
     await user.click(toggle);
     expect(screen.getByText("Tonkotsu")).toBeVisible();

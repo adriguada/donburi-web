@@ -1,6 +1,9 @@
 import { useId, useState, type FormEvent } from "react";
-import type { Dish, DishInput } from "../../../shared/types";
+import { MAX_SPICINESS, type Dish, type DishInput } from "../../../shared/types";
 import { errorMessage } from "../../api";
+import { spicinessLabel } from "../../format";
+
+const SPICINESS_LEVELS = Array.from({ length: MAX_SPICINESS + 1 }, (_, level) => level);
 
 interface Props {
   dish?: Dish;
@@ -15,7 +18,7 @@ export function DishForm({ dish, submitLabel, onSubmit, onCancel, testId }: Prop
   const [name, setName] = useState(dish?.name ?? "");
   const [description, setDescription] = useState(dish?.description ?? "");
   const [price, setPrice] = useState(dish ? String(dish.price) : "");
-  const [isSpicy, setIsSpicy] = useState(dish?.isSpicy ?? false);
+  const [spiciness, setSpiciness] = useState(dish?.spiciness ?? 0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const id = useId();
@@ -24,7 +27,7 @@ export function DishForm({ dish, submitLabel, onSubmit, onCancel, testId }: Prop
     setName("");
     setDescription("");
     setPrice("");
-    setIsSpicy(false);
+    setSpiciness(0);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -41,7 +44,7 @@ export function DishForm({ dish, submitLabel, onSubmit, onCancel, testId }: Prop
         name: name.trim(),
         description: description.trim() || null,
         price: parsedPrice,
-        isSpicy,
+        spiciness,
       });
       if (!dish) reset();
     } catch (err) {
@@ -89,15 +92,30 @@ export function DishForm({ dish, submitLabel, onSubmit, onCancel, testId }: Prop
             required
           />
         </div>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            name="isSpicy"
-            checked={isSpicy}
-            onChange={(event) => setIsSpicy(event.target.checked)}
-          />
-          Picante
-        </label>
+        <fieldset className="spiciness-field">
+          <legend>Picante</legend>
+          <div className="spiciness-options">
+            {SPICINESS_LEVELS.map((level) => (
+              <label key={level} className="spiciness-option" data-testid={`spiciness-option-${level}`}>
+                <input
+                  type="radio"
+                  name={`${id}-spiciness`}
+                  value={level}
+                  checked={spiciness === level}
+                  onChange={() => setSpiciness(level)}
+                />
+                {level === 0 ? (
+                  <span>No</span>
+                ) : (
+                  <>
+                    <span aria-hidden="true">{"🌶️".repeat(level)}</span>
+                    <span className="visually-hidden">{spicinessLabel(level)}</span>
+                  </>
+                )}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
       {error && (
         <p className="form-error" role="alert" data-testid="form-error">

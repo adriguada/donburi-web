@@ -12,8 +12,8 @@ const ramenMenu: Menu = {
       id: 1,
       title: "Ramen",
       dishes: [
-        { id: 10, sectionId: 1, name: "Shoyu", description: "Clásico", price: 12, isSpicy: false },
-        { id: 11, sectionId: 1, name: "Miso", description: null, price: 12.5, isSpicy: false },
+        { id: 10, sectionId: 1, name: "Shoyu", description: "Clásico", price: 12, spiciness: 0 },
+        { id: 11, sectionId: 1, name: "Miso", description: null, price: 12.5, spiciness: 1 },
       ],
     },
   ],
@@ -112,13 +112,13 @@ describe("AdminPage", () => {
     expect(callsTo(fetchMock, "DELETE", "/api/section/1")).toHaveLength(1);
   });
 
-  it("adds a dish with name, description, price and spicy flag (AD1.1.2.2.1)", async () => {
+  it("adds a dish with name, description, price and spiciness (AD1.1.2.2.1)", async () => {
     const user = userEvent.setup();
     const fetchMock = mockFetch({
       "GET /api/menu": menuSequence(ramenMenu),
       "POST /api/dish": () => ({
         status: 201,
-        body: { id: 12, sectionId: 1, name: "Tantanmen", description: "Con sésamo", price: 14.5, isSpicy: true },
+        body: { id: 12, sectionId: 1, name: "Tantanmen", description: "Con sésamo", price: 14.5, spiciness: 3 },
       }),
     });
     render(<AdminPage />);
@@ -127,12 +127,14 @@ describe("AdminPage", () => {
     await user.type(within(form).getByLabelText("Nombre"), "Tantanmen");
     await user.type(within(form).getByLabelText("Descripción (opcional)"), "Con sésamo");
     await user.type(within(form).getByLabelText("Precio (€)"), "14,5");
-    await user.click(within(form).getByLabelText("Picante"));
+    const spiciness = within(form).getByRole("group", { name: "Picante" });
+    expect(within(spiciness).getByRole("radio", { name: "No" })).toBeChecked();
+    await user.click(within(spiciness).getByRole("radio", { name: "3 guindillas" }));
     await user.click(within(form).getByRole("button", { name: "Añadir plato" }));
 
     await waitFor(() =>
       expect(callsTo(fetchMock, "POST", "/api/dish")).toEqual([
-        { sectionId: 1, name: "Tantanmen", description: "Con sésamo", price: 14.5, isSpicy: true },
+        { sectionId: 1, name: "Tantanmen", description: "Con sésamo", price: 14.5, spiciness: 3 },
       ]),
     );
     await waitFor(() => expect(within(form).getByLabelText("Nombre")).toHaveValue(""));
@@ -166,6 +168,7 @@ describe("AdminPage", () => {
 
     const form = screen.getByTestId("edit-dish-form");
     expect(within(form).getByLabelText("Precio (€)")).toHaveValue("12.5");
+    expect(within(form).getByRole("radio", { name: "1 guindilla" })).toBeChecked();
     const name = within(form).getByLabelText("Nombre");
     await user.clear(name);
     await user.type(name, "Shoyu");
@@ -173,7 +176,7 @@ describe("AdminPage", () => {
 
     expect(await within(form).findByRole("alert")).toHaveTextContent("Ya existe un plato con ese nombre en esta sección.");
     expect(callsTo(fetchMock, "PUT", "/api/dish/11")).toEqual([
-      { name: "Shoyu", description: null, price: 12.5, isSpicy: false },
+      { name: "Shoyu", description: null, price: 12.5, spiciness: 1 },
     ]);
   });
 

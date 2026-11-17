@@ -1,15 +1,16 @@
-/* Light theme only: the seigaiha background is designed for a light page. */
+/* Warm light theme (parchment and espresso ink, never stark white) so the
+   menu is easy on the eyes in a dim restaurant. Not a dark mode. */
 :root {
-  --paper: #f9f8f6;
-  --surface: rgb(255 255 255 / 0.92);
-  --ink: #1a1a1a;
-  --muted: #574f48;
-  --line: #d8cec3;
-  --accent: #b3261e;
+  --paper: #efe3d3;
+  --surface: rgb(250 243 233 / 0.92);
+  --ink: #2b1f19;
+  --muted: #614f43;
+  --line: #d3bfa8;
+  --accent: #a8321f;
   --accent-ink: #ffffff;
-  --danger: #b3261e;
+  --danger: #a8321f;
   --focus: #1f5fbf;
-  --shadow: 0 1px 2px rgb(26 26 26 / 0.06), 0 4px 12px rgb(26 26 26 / 0.06);
+  --shadow: 0 1px 2px rgb(60 35 20 / 0.08), 0 4px 12px rgb(60 35 20 / 0.08);
 
   --pattern: url("./assets/seigaiha.svg");
   --pattern-size: 100px 50px;
@@ -21,6 +22,13 @@
   background: var(--paper);
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Phones: slightly smaller base size (Shippori Mincho is a wide face). */
+@media (max-width: 599px) {
+  :root {
+    font-size: 16px;
+  }
 }
 
 *,

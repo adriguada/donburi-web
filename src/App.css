@@ -19,11 +19,11 @@
 }
 
 /* ---------- Public menu ---------- */
-/* The logo header stays at the top: it slides up and fades out while
-   scrolling down, and comes back when scrolling up (see useShowOnScrollUp).
-   It spans the full width and repeats the page pattern; the page pattern is
-   fixed to the viewport (body::before), so both line up whenever the header
-   sits at the top of the screen. */
+/* The logo hangs from the top of the page inside a terracotta frame
+   (logo-marco.svg, open at the top). The header is sticky: it slides up and
+   fades out while scrolling down and comes back when scrolling up (see
+   useShowOnScrollUp). Only the frame is opaque; the strips beside it are
+   transparent and let clicks through to the content underneath. */
 .menu-page {
   min-height: 100svh;
   display: flex;
@@ -38,20 +38,28 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 0 16px;
-  background: var(--paper) var(--pattern) repeat;
-  background-size: var(--pattern-size);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
   transition:
     transform 0.35s ease,
     opacity 0.35s ease;
 }
 .menu-header-inner {
-  max-width: 688px;
-  margin: 0 auto;
+  pointer-events: auto;
+  width: 240px;
+  height: 240px;
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 24px 0 16px;
-  border-bottom: 2px solid var(--ink);
+  background: #c8645c url("./assets/logo-marco.svg") no-repeat;
+  background-size: 100% 100%;
+  /* Keep the logo inside the frame's inner line (the bottom trim is ~21px tall at this size). */
+  padding-bottom: 21px;
+  box-shadow: 0 6px 16px rgb(60 35 20 / 0.18);
+}
+.menu-header .logo {
+  height: 172px;
 }
 .menu-header-hidden {
   transform: translateY(-100%);
@@ -101,6 +109,25 @@
 .toggle-icon .icon {
   width: 22px;
   height: 22px;
+}
+.section-content {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 0.3s ease,
+    visibility 0.3s;
+}
+.section-content[data-expanded="false"] {
+  grid-template-rows: 0fr;
+}
+.section-content-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-content {
+    transition: none;
+  }
 }
 .dish-list {
   list-style: none;
@@ -159,13 +186,22 @@
 }
 
 /* ---------- Footer ---------- */
+/* Full-width terracotta band (header-fondo.svg: decorative trim along the top
+   and bottom edges, stretched to the footer size). */
 .footer {
-  border-top: 2px solid var(--ink);
-  padding-top: 16px;
+  margin-top: 24px;
+  /* Clear the 34px decorative bands at the top and bottom of the background. */
+  padding: 50px 16px 52px;
+  background: #c8645c url("./assets/header-fondo.svg") no-repeat;
+  background-size: 100% 100%;
+  color: var(--ink);
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.footer a {
+  color: var(--ink);
 }
 .footer-title {
   font-size: 1.1rem;
@@ -192,7 +228,7 @@
   color: var(--ink);
 }
 .social-link:hover {
-  color: var(--accent);
+  color: var(--paper);
 }
 
 /* ---------- Admin ---------- */
@@ -314,24 +350,13 @@
 .field-row .field {
   flex: 0 1 160px;
 }
-.checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding-bottom: 8px;
-}
-input:not([type="checkbox"]),
+input:not([type="radio"]),
 textarea {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--paper);
-}
-input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
 }
 .form-error {
   color: var(--danger);
@@ -389,7 +414,7 @@ button.icon-button {
 .admin-section.dragging {
   position: relative;
   z-index: 5;
-  box-shadow: 0 8px 24px rgb(26 26 26 / 0.18);
+  box-shadow: 0 8px 24px rgb(60 35 20 / 0.22);
 }
 .admin-section.dragging .drag-handle {
   cursor: grabbing;
@@ -398,11 +423,67 @@ button.icon-button {
   font-size: 0.9rem;
 }
 
+.spiciness-field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.spiciness-field legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.spiciness-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* Segmented choice: the radio is visually hidden, the label is the button. */
+.spiciness-option {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 38px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.spiciness-option input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.spiciness-option:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.spiciness-option:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* ---------- Dialog ---------- */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(0 0 0 / 0.45);
+  background: rgb(43 31 25 / 0.5);
   display: grid;
   place-items: center;
   padding: 16px;
@@ -418,4 +499,29 @@ button.icon-button {
   flex-direction: column;
   gap: 16px;
   box-shadow: var(--shadow);
+}
+
+/* ---------- Phones ---------- */
+/* Smaller type and a smaller logo frame so more of the menu fits on screen.
+   Base size is 16px here (index.css); keep names ≥16px and descriptions ≥14px. */
+@media (max-width: 599px) {
+  .menu-section-toggle {
+    font-size: 1.25rem; /* 20px */
+    padding: 10px 0;
+  }
+  .dish-list {
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+  .dish-description {
+    font-size: 0.875rem; /* 14px */
+  }
+  .menu-header-inner {
+    width: 170px;
+    height: 170px;
+    padding-bottom: 15px;
+  }
+  .menu-header .logo {
+    height: 122px;
+  }
 }

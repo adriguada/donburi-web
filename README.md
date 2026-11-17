@@ -11,13 +11,13 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 - Diseño adaptado a móviles, tablets y PCs.
 - Muestra el logo del restaurante.
 - Fondo claro con patrón *seigaiha* y tipografía Shippori Mincho en tinta oscura.
-- El logo se desvanece hacia arriba al bajar por la carta y reaparece al subir.
+- El logo cuelga de la parte superior dentro de un marco terracota; se desvanece hacia arriba al bajar por la carta y reaparece al subir.
 - Los precios se separan del plato con una línea fina continua.
-- Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar (icono «−») y desplegar (icono «+») desde la esquina superior izquierda de cada sección.
-- Cada plato muestra nombre, descripción y precio; los platos picantes se marcan con un icono de guindilla.
+- Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar (icono «−») y desplegar (icono «+») desde la esquina superior izquierda de cada sección, con una transición suave.
+- Cada plato muestra nombre, descripción y precio; los platos picantes muestran de una a tres guindillas según su nivel de picante.
 - Las secciones vacías muestran el mensaje "Work In Progress..."; si la carta entera está vacía, el mensaje aparece en el centro de la pantalla.
 - *(Pendiente)* Selector de idioma en la parte superior: español, inglés, alemán, francés y portugués.
-- Al final de la carta: dirección, teléfono y los iconos de WhatsApp e Instagram enlazando a las cuentas del restaurante.
+- Al final de la carta, sobre una banda terracota con bandas decorativas: dirección, teléfono y los iconos de WhatsApp e Instagram enlazando a las cuentas del restaurante.
 
 ### Panel de administración (`/admin/`)
 - Acceso protegido con [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/).
@@ -26,7 +26,7 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
   - Eliminar una sección pide confirmación y elimina también todos sus platos.
 - Ordenar las secciones de la carta arrastrándolas por su asa (también con teclado y en pantallas táctiles).
 - Los botones de editar y eliminar son iconos de lápiz y papelera.
-- Crear, editar y eliminar **platos** dentro de cada sección (nombre, descripción opcional, precio y si es picante).
+- Crear, editar y eliminar **platos** dentro de cada sección (nombre, descripción opcional, precio y nivel de picante de 0 a 3 guindillas).
   - El nombre de un plato no puede repetirse dentro de la misma sección; si se intenta, se muestra un error y la carta no cambia.
 
 ## Stack tecnológico
@@ -83,7 +83,7 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 | name        | Nombre del plato (único dentro de su sección)       |
 | description | Descripción (opcional)                              |
 | price       | Precio                                              |
-| isSpicy     | Indica si el plato es picante                       |
+| spiciness   | Nivel de picante: número de guindillas, de 0 a 3    |
 
 ## Desarrollo local
 
@@ -122,7 +122,7 @@ npm run cf-typegen   # Regenerar tipos tras cambiar los bindings en wrangler.jso
 
 ### Datos del restaurante
 
-La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram están en [`src/config.ts`](src/config.ts). El logo es [`src/assets/donburi-logo.svg`](src/assets/donburi-logo.svg) y el fondo [`src/assets/seigaiha.svg`](src/assets/seigaiha.svg). La tipografía Shippori Mincho se sirve desde la propia web (paquete `@fontsource/shippori-mincho`, solo el subconjunto latino).
+La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram están en [`src/config.ts`](src/config.ts). El logo es [`src/assets/donburi-logo.svg`](src/assets/donburi-logo.svg) (en la carta se usa `donburi-logo-light.svg`, con el kanji en el color claro, dentro del marco [`src/assets/logo-marco.svg`](src/assets/logo-marco.svg)), el fondo del pie de página [`src/assets/header-fondo.svg`](src/assets/header-fondo.svg) y el fondo de la página [`src/assets/seigaiha.svg`](src/assets/seigaiha.svg). La tipografía Shippori Mincho se sirve desde la propia web (paquete `@fontsource/shippori-mincho`, solo el subconjunto latino).
 
 ## Tests
 
