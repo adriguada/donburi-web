@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import type { Section } from "../../shared/types";
 import { formatPrice } from "../format";
+import { MinusIcon, PlusIcon } from "./icons";
 import { SpicyIcon } from "./SpicyIcon";
 
 export const WIP_MESSAGE = "Work In Progress...";
@@ -19,8 +20,10 @@ export function MenuSection({ section }: { section: Section }) {
           aria-controls={contentId}
           onClick={() => setExpanded((value) => !value)}
         >
+          <span className="toggle-icon" data-testid="section-toggle-icon" data-state={expanded ? "expanded" : "collapsed"}>
+            {expanded ? <MinusIcon /> : <PlusIcon />}
+          </span>
           <span>{section.title}</span>
-          <span className="chevron" aria-hidden="true" />
         </button>
       </h2>
       <div id={contentId} hidden={!expanded}>
@@ -37,7 +40,7 @@ export function MenuSection({ section }: { section: Section }) {
                     {dish.name}
                   </span>
                   {dish.isSpicy && <SpicyIcon />}
-                  <span className="dish-dots" aria-hidden="true" />
+                  <span className="dish-rule" aria-hidden="true" />
                   <span className="dish-price" data-testid="dish-price">
                     {formatPrice(dish.price)}
                   </span>

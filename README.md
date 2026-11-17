@@ -10,17 +10,22 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 - Accesible escaneando el código QR de las mesas.
 - Diseño adaptado a móviles, tablets y PCs.
 - Muestra el logo del restaurante.
-- Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar y desplegar.
+- Fondo claro con patrón *seigaiha* y tipografía Shippori Mincho en tinta oscura.
+- El logo se desvanece hacia arriba al bajar por la carta y reaparece al subir.
+- Los precios se separan del plato con una línea fina continua.
+- Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar (icono «−») y desplegar (icono «+») desde la esquina superior izquierda de cada sección.
 - Cada plato muestra nombre, descripción y precio; los platos picantes se marcan con un icono de guindilla.
 - Las secciones vacías muestran el mensaje "Work In Progress..."; si la carta entera está vacía, el mensaje aparece en el centro de la pantalla.
 - *(Pendiente)* Selector de idioma en la parte superior: español, inglés, alemán, francés y portugués.
-- Al final de la carta: dirección, teléfono, enlace a WhatsApp y enlace a Instagram del restaurante.
+- Al final de la carta: dirección, teléfono y los iconos de WhatsApp e Instagram enlazando a las cuentas del restaurante.
 
 ### Panel de administración (`/admin/`)
 - Acceso protegido con [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/).
 - Crear, renombrar y eliminar **secciones**.
   - El nombre de una sección no puede repetirse en la carta.
   - Eliminar una sección pide confirmación y elimina también todos sus platos.
+- Ordenar las secciones de la carta arrastrándolas por su asa (también con teclado y en pantallas táctiles).
+- Los botones de editar y eliminar son iconos de lápiz y papelera.
 - Crear, editar y eliminar **platos** dentro de cada sección (nombre, descripción opcional, precio y si es picante).
   - El nombre de un plato no puede repetirse dentro de la misma sección; si se intenta, se muestra un error y la carta no cambia.
 
@@ -55,6 +60,7 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 | `POST`   | `/api/section`     | Añadir una sección             |
 | `PUT`    | `/api/section/:id` | Modificar una sección          |
 | `DELETE` | `/api/section/:id` | Eliminar una sección y sus platos |
+| `PUT`    | `/api/section/order` | Ordenar las secciones (`{ "sectionIds": [3, 1, 2] }`, todas las secciones en el nuevo orden) |
 | `POST`   | `/api/dish`        | Añadir un plato                |
 | `PUT`    | `/api/dish/:id`    | Modificar un plato             |
 | `DELETE` | `/api/dish/:id`    | Eliminar un plato              |
@@ -116,7 +122,7 @@ npm run cf-typegen   # Regenerar tipos tras cambiar los bindings en wrangler.jso
 
 ### Datos del restaurante
 
-La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram son valores de ejemplo en [`src/config.ts`](src/config.ts). El logo es un marcador provisional en [`src/components/Logo.tsx`](src/components/Logo.tsx).
+La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram están en [`src/config.ts`](src/config.ts). El logo es [`src/assets/donburi-logo.svg`](src/assets/donburi-logo.svg) y el fondo [`src/assets/seigaiha.svg`](src/assets/seigaiha.svg). La tipografía Shippori Mincho se sirve desde la propia web (paquete `@fontsource/shippori-mincho`, solo el subconjunto latino).
 
 ## Tests
 

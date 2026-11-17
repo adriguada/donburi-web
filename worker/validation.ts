@@ -1,4 +1,4 @@
-import type { DishInput, NewDishInput, SectionInput } from "../shared/types";
+import type { DishInput, NewDishInput, SectionInput, SectionOrderInput } from "../shared/types";
 
 export const MAX_TITLE_LENGTH = 100;
 export const MAX_DESCRIPTION_LENGTH = 500;
@@ -32,6 +32,20 @@ export function parseSectionInput(body: unknown): Parsed<SectionInput> {
   const title = requiredText(body.title, "title", MAX_TITLE_LENGTH);
   if (!title.ok) return title;
   return { ok: true, value: { title: title.value } };
+}
+
+export function parseSectionOrder(body: unknown): Parsed<SectionOrderInput> {
+  if (!isRecord(body) || !Array.isArray(body.sectionIds)) {
+    return { ok: false, message: 'El campo "sectionIds" debe ser una lista de identificadores.' };
+  }
+  const ids = body.sectionIds;
+  if (!ids.every((id): id is number => typeof id === "number" && Number.isSafeInteger(id) && id > 0)) {
+    return { ok: false, message: 'El campo "sectionIds" solo puede contener identificadores válidos.' };
+  }
+  if (new Set(ids).size !== ids.length) {
+    return { ok: false, message: 'El campo "sectionIds" no puede contener secciones repetidas.' };
+  }
+  return { ok: true, value: { sectionIds: ids } };
 }
 
 export function parseDishInput(body: unknown): Parsed<DishInput> {

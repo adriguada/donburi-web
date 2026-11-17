@@ -1,5 +1,5 @@
 // Selenium integration tests for the admin panel: PIA1–PIA8 in requirements.md.
-import { By, until, type WebDriver } from "selenium-webdriver";
+import { Origin, By, until, type WebDriver } from "selenium-webdriver";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   adminDish,
@@ -208,5 +208,44 @@ describe("Panel de administración (PIA)", () => {
       { name: "Miso", spicy: true },
       { name: "Tonkotsu", spicy: false },
     ]);
+  });
+
+  it("AD1.2.1: el administrador arrastra una sección para cambiar su orden en la carta", async () => {
+    await seedSection("Entrantes", [{ name: "Gyozas", price: 6 }]);
+    await seedSection("Ramen", RAMEN);
+    await seedSection("Postres");
+    await openAdmin(driver);
+
+    // Drag "Postres" by its handle above "Entrantes", moving in small steps like a real pointer.
+    const handle = await (await adminSection(driver, "Postres")).findElement(By.css("[data-testid=drag-section]"));
+    const target = await (await adminSection(driver, "Entrantes")).findElement(By.css("[data-testid=drag-section]"));
+    const from = await handle.getRect();
+    const to = await target.getRect();
+    const dy = Math.round(to.y - from.y - 20);
+    let actions = driver.actions({ async: true }).move({ origin: handle }).press();
+    for (let step = 1; step <= 10; step++) {
+      actions = actions.move({ origin: Origin.POINTER, x: 0, y: Math.round(dy / 10), duration: 50 });
+    }
+    await actions.release().perform();
+
+    const sectionTitles = async () => {
+      const titles = await driver.findElements(By.css("[data-testid=admin-section-title]"));
+      return Promise.all(titles.map((title) => title.getText()));
+    };
+    await waitUntil(
+      driver,
+      async () => JSON.stringify(await sectionTitles()) === JSON.stringify(["Postres", "Entrantes", "Ramen"]),
+      "sections were not reordered in the admin panel",
+    );
+    await waitUntil(
+      driver,
+      async () => (await getMenu()).sections.map((section) => section.title).join() === "Postres,Entrantes,Ramen",
+      "new order was not saved",
+    );
+
+    await openMenu(driver);
+    const menu = await readMenu(driver);
+    expect(menu.map((section) => section.title)).toEqual(["Postres", "Entrantes", "Ramen"]);
+    expect(menu[2].dishes.map((dish) => dish.name)).toEqual(RAMEN.map((dish) => dish.name));
   });
 });

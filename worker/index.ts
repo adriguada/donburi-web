@@ -1,13 +1,21 @@
 import type { ApiError, ApiErrorCode } from "../shared/types";
 import { authenticate, type AuthEnv } from "./auth";
 import * as db from "./db";
-import { parseDishInput, parseId, parseNewDishInput, parseSectionInput, type Parsed } from "./validation";
+import {
+  parseDishInput,
+  parseId,
+  parseNewDishInput,
+  parseSectionInput,
+  parseSectionOrder,
+  type Parsed,
+} from "./validation";
 
 export type AppEnv = Env & AuthEnv;
 
 const MESSAGES = {
   sectionExists: "Ya existe una sección con ese nombre en la carta.",
   dishExists: "Ya existe un plato con ese nombre en esta sección.",
+  orderConflict: "La carta ha cambiado mientras la ordenabas. Recarga la página e inténtalo de nuevo.",
   sectionNotFound: "La sección no existe.",
   dishNotFound: "El plato no existe.",
   invalidJson: "El cuerpo de la petición no es JSON válido.",
@@ -81,6 +89,15 @@ async function handleSections(request: Request, env: AppEnv, rawId: string | und
   }
 }
 
+async function handleSectionOrder(request: Request, env: AppEnv): Promise<Response> {
+  if (request.method !== "PUT") return methodNotAllowed(["PUT"]);
+  const input = await readBody(request, parseSectionOrder);
+  if (!input.ok) return error("VALIDATION_ERROR", input.message, 400);
+  const result = await db.reorderSections(env.DB, input.value.sectionIds);
+  if (!result.ok) return error("ORDER_CONFLICT", MESSAGES.orderConflict, 409);
+  return json(result.value);
+}
+
 async function handleDishes(request: Request, env: AppEnv, rawId: string | undefined): Promise<Response> {
   if (rawId === undefined) {
     if (request.method !== "POST") return methodNotAllowed(["POST"]);
@@ -128,6 +145,7 @@ async function handleApi(request: Request, env: AppEnv, path: string): Promise<R
   if (denied) return denied;
 
   const [, resource, rawId] = match;
+  if (resource === "section" && rawId === "order") return handleSectionOrder(request, env);
   return resource === "section" ? handleSections(request, env, rawId) : handleDishes(request, env, rawId);
 }
 

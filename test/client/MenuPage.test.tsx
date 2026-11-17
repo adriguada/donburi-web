@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Menu } from "../../shared/types";
@@ -68,15 +68,24 @@ describe("MenuPage", () => {
     const user = userEvent.setup();
     renderWithMenu(menu);
     const toggle = await screen.findByRole("button", { name: "Ramen" });
+    const icon = () => within(toggle).getByTestId("section-toggle-icon");
     expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(icon()).toHaveAttribute("data-state", "expanded"); // '−' icon
     expect(screen.getByText("Tonkotsu")).toBeVisible();
 
     await user.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(icon()).toHaveAttribute("data-state", "collapsed"); // '+' icon
     expect(screen.getByText("Tonkotsu")).not.toBeVisible();
 
     await user.click(toggle);
     expect(screen.getByText("Tonkotsu")).toBeVisible();
+  });
+
+  it("places the −/+ icon before the section title (Diseño de interfaz)", async () => {
+    renderWithMenu(menu);
+    const toggle = await screen.findByRole("button", { name: "Ramen" });
+    expect(toggle.firstElementChild).toHaveAttribute("data-testid", "section-toggle-icon");
   });
 
   it("shows address, phone, WhatsApp and Instagram in the footer (CL1.3)", async () => {
@@ -95,6 +104,41 @@ describe("MenuPage", () => {
     const digits = restaurant.phone.replace(/\D/g, "");
     expect(links.phone).toBe(`tel:+${digits}`);
     expect(links.whatsapp).toBe(`https://wa.me/${digits}`);
+  });
+
+  it("shows WhatsApp and Instagram as app icons (Diseño de interfaz)", async () => {
+    renderWithMenu(menu);
+    await screen.findByText("Tonkotsu");
+    for (const name of [/whatsapp/i, /instagram/i]) {
+      const link = screen.getByRole("link", { name });
+      expect(link).toHaveTextContent("");
+      expect(link.querySelector("svg")).not.toBeNull();
+    }
+  });
+
+  it("hides the logo while scrolling down and shows it again when scrolling up (Diseño de interfaz)", async () => {
+    renderWithMenu(menu);
+    await screen.findByText("Tonkotsu");
+    const header = screen.getByTestId("menu-header");
+    const scrollTo = (y: number) => {
+      Object.defineProperty(window, "scrollY", { value: y, configurable: true });
+      fireEvent.scroll(window);
+    };
+    expect(header).toHaveAttribute("data-visible", "true");
+
+    scrollTo(300);
+    await waitFor(() => expect(header).toHaveAttribute("data-visible", "false"));
+    expect(header).toHaveClass("menu-header-hidden");
+
+    scrollTo(303); // tiny movements are ignored
+    scrollTo(150);
+    await waitFor(() => expect(header).toHaveAttribute("data-visible", "true"));
+    expect(header).not.toHaveClass("menu-header-hidden");
+
+    scrollTo(600);
+    await waitFor(() => expect(header).toHaveAttribute("data-visible", "false"));
+    scrollTo(0);
+    await waitFor(() => expect(header).toHaveAttribute("data-visible", "true"));
   });
 
   it("shows an error when the menu cannot be loaded", async () => {

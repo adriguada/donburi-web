@@ -40,6 +40,7 @@ export const api = {
   createSection: (input: SectionInput) => request<Section>("POST", "/api/section", input),
   updateSection: (id: number, input: SectionInput) => request<Section>("PUT", `/api/section/${id}`, input),
   deleteSection: (id: number) => request<void>("DELETE", `/api/section/${id}`),
+  reorderSections: (sectionIds: number[]) => request<Menu>("PUT", "/api/section/order", { sectionIds }),
   createDish: (input: NewDishInput) => request<Dish>("POST", "/api/dish", input),
   updateDish: (id: number, input: DishInput) => request<Dish>("PUT", `/api/dish/${id}`, input),
   deleteDish: (id: number) => request<void>("DELETE", `/api/dish/${id}`),

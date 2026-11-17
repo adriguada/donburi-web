@@ -24,6 +24,11 @@ export interface SectionInput {
   title: string;
 }
 
+/** Body of PUT /api/section/order: every section id, in the new order. */
+export interface SectionOrderInput {
+  sectionIds: number[];
+}
+
 export interface DishInput {
   name: string;
   description?: string | null;
@@ -40,6 +45,7 @@ export type ApiErrorCode =
   | "NOT_FOUND"
   | "SECTION_EXISTS"
   | "DISH_EXISTS"
+  | "ORDER_CONFLICT"
   | "UNAUTHORIZED"
   | "AUTH_NOT_CONFIGURED";
 

@@ -81,7 +81,7 @@ describe("AdminPage", () => {
       "PUT /api/section/1": () => ({ status: 200, body: renamed.sections[0] }),
     });
     render(<AdminPage />);
-    await user.click(await screen.findByRole("button", { name: "Editar nombre" }));
+    await user.click(await screen.findByRole("button", { name: "Editar sección" }));
     const input = screen.getByLabelText("Nombre de la sección");
     await user.clear(input);
     await user.type(input, "Ramens");
@@ -162,7 +162,7 @@ describe("AdminPage", () => {
     });
     render(<AdminPage />);
     const dishes = await screen.findAllByTestId("admin-dish");
-    await user.click(within(dishes[1]).getByRole("button", { name: "Editar" }));
+    await user.click(within(dishes[1]).getByRole("button", { name: "Editar plato" }));
 
     const form = screen.getByTestId("edit-dish-form");
     expect(within(form).getByLabelText("Precio (€)")).toHaveValue("12.5");
@@ -186,7 +186,7 @@ describe("AdminPage", () => {
     });
     render(<AdminPage />);
     const dishes = await screen.findAllByTestId("admin-dish");
-    await user.click(within(dishes[1]).getByRole("button", { name: "Eliminar" }));
+    await user.click(within(dishes[1]).getByRole("button", { name: "Eliminar plato" }));
     await waitFor(() => expect(screen.getAllByTestId("admin-dish")).toHaveLength(1));
     expect(callsTo(fetchMock, "DELETE", "/api/dish/11")).toHaveLength(1);
   });

@@ -239,3 +239,57 @@ describe("unknown routes", () => {
     expect(await response.json()).toMatchObject({ error: "NOT_FOUND" });
   });
 });
+
+describe("PUT /api/section/order (AD1.2: ordenar secciones)", () => {
+  it("adds new sections at the end of the menu", async () => {
+    await createSection("Ramen");
+    await createSection("Postres");
+    await createSection("Bebidas");
+    expect((await getMenu()).sections.map((s) => s.title)).toEqual(["Ramen", "Postres", "Bebidas"]);
+  });
+
+  it("reorders the sections and returns the updated menu", async () => {
+    const ramen = await createSection("Ramen");
+    const desserts = await createSection("Postres");
+    const starters = await createSection("Entrantes");
+    await createDish(ramen.id, "Shoyu");
+
+    const response = await call("PUT", "/api/section/order", { sectionIds: [starters.id, ramen.id, desserts.id] });
+    expect(response.status).toBe(200);
+    const menu = (await response.json()) as Awaited<ReturnType<typeof getMenu>>;
+    expect(menu.sections.map((s) => s.title)).toEqual(["Entrantes", "Ramen", "Postres"]);
+    expect(menu.sections[1].dishes.map((d) => d.name)).toEqual(["Shoyu"]);
+    expect(await getMenu()).toEqual(menu);
+  });
+
+  it("puts sections created after a reorder at the end", async () => {
+    const ramen = await createSection("Ramen");
+    const desserts = await createSection("Postres");
+    await call("PUT", "/api/section/order", { sectionIds: [desserts.id, ramen.id] });
+    await createSection("Bebidas");
+    expect((await getMenu()).sections.map((s) => s.title)).toEqual(["Postres", "Ramen", "Bebidas"]);
+  });
+
+  it("rejects a list that does not match the current sections, without changing the order", async () => {
+    const ramen = await createSection("Ramen");
+    const desserts = await createSection("Postres");
+    for (const sectionIds of [[desserts.id], [desserts.id, ramen.id, 999]]) {
+      const response = await call("PUT", "/api/section/order", { sectionIds });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ error: "ORDER_CONFLICT" });
+    }
+    expect((await getMenu()).sections.map((s) => s.title)).toEqual(["Ramen", "Postres"]);
+  });
+
+  it("validates the body", async () => {
+    for (const body of [{}, { sectionIds: "1,2" }, { sectionIds: [1, "2"] }, { sectionIds: [1, 1] }, { sectionIds: [0] }]) {
+      const response = await call("PUT", "/api/section/order", body);
+      expect(response.status, JSON.stringify(body)).toBe(400);
+    }
+  });
+
+  it("only accepts PUT", async () => {
+    const response = await call("POST", "/api/section/order", { sectionIds: [] });
+    expect(response.status).toBe(405);
+  });
+});

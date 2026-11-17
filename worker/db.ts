@@ -37,7 +37,7 @@ function isUniqueViolation(error: unknown): boolean {
 
 export async function getMenu(db: D1Database): Promise<Menu> {
   const [sections, dishes] = await db.batch([
-    db.prepare("SELECT id, title FROM sections ORDER BY id"),
+    db.prepare('SELECT id, title FROM sections ORDER BY "order", id'),
     db.prepare(`SELECT ${DISH_COLUMNS} FROM dishes ORDER BY id`),
   ]);
   const bySection = new Map<number, Section>();
@@ -63,7 +63,11 @@ async function getSection(db: D1Database, id: number): Promise<Section | null> {
 export async function createSection(db: D1Database, input: SectionInput): Promise<WriteResult<Section>> {
   try {
     const row = await db
-      .prepare("INSERT INTO sections (title) VALUES (?) RETURNING id, title")
+      .prepare(
+        `INSERT INTO sections (title, "order")
+         VALUES (?, (SELECT COALESCE(MAX("order"), 0) + 1 FROM sections))
+         RETURNING id, title`,
+      )
       .bind(input.title)
       .first<SectionRow>();
     return { ok: true, value: { id: row!.id, title: row!.title, dishes: [] } };
@@ -86,6 +90,25 @@ export async function updateSection(
     throw error;
   }
   return { ok: true, value: (await getSection(db, id))! };
+}
+
+/**
+ * Sets the order of the sections on the menu (AD1.2). `sectionIds` must list
+ * every existing section exactly once; otherwise nothing changes and the
+ * result is a conflict (the admin is looking at a stale menu).
+ */
+export async function reorderSections(db: D1Database, sectionIds: number[]): Promise<WriteResult<Menu>> {
+  const existing = await db.prepare("SELECT id FROM sections").all<{ id: number }>();
+  const existingIds = new Set(existing.results.map((row) => row.id));
+  if (existingIds.size !== sectionIds.length || !sectionIds.every((id) => existingIds.has(id))) {
+    return { ok: false, reason: "conflict" };
+  }
+  if (sectionIds.length > 0) {
+    await db.batch(
+      sectionIds.map((id, index) => db.prepare('UPDATE sections SET "order" = ? WHERE id = ?').bind(index + 1, id)),
+    );
+  }
+  return { ok: true, value: await getMenu(db) };
 }
 
 /** Deletes a section and every dish in it, atomically. Returns false if the section does not exist. */

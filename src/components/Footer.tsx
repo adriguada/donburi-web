@@ -1,4 +1,5 @@
 import { links, restaurant } from "../config";
+import { InstagramIcon, WhatsAppIcon } from "./icons";
 
 export function Footer() {
   return (
@@ -14,13 +15,29 @@ export function Footer() {
       </address>
       <ul className="footer-links">
         <li>
-          <a href={links.whatsapp} target="_blank" rel="noopener noreferrer" data-testid="whatsapp-link">
-            WhatsApp
+          <a
+            href={links.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="social-link"
+            aria-label="WhatsApp"
+            title="WhatsApp"
+            data-testid="whatsapp-link"
+          >
+            <WhatsAppIcon />
           </a>
         </li>
         <li>
-          <a href={links.instagram} target="_blank" rel="noopener noreferrer" data-testid="instagram-link">
-            Instagram @{restaurant.instagramHandle}
+          <a
+            href={links.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="social-link"
+            aria-label={`Instagram @${restaurant.instagramHandle}`}
+            title={`Instagram @${restaurant.instagramHandle}`}
+            data-testid="instagram-link"
+          >
+            <InstagramIcon />
           </a>
         </li>
       </ul>

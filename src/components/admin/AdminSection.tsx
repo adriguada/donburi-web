@@ -1,7 +1,10 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import type { Section } from "../../../shared/types";
 import { api, errorMessage } from "../../api";
 import { formatPrice } from "../../format";
+import { GripIcon, PencilIcon, TrashIcon } from "../icons";
 import { SpicyIcon } from "../SpicyIcon";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DishForm } from "./DishForm";
@@ -18,6 +21,9 @@ export function AdminSection({ section, onChanged }: Props) {
   const [editingDishId, setEditingDishId] = useState<number | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: section.id,
+  });
 
   async function run(action: () => Promise<unknown>) {
     setError(null);
@@ -30,7 +36,13 @@ export function AdminSection({ section, onChanged }: Props) {
   }
 
   return (
-    <section className="admin-section card" data-testid="admin-section" aria-label={section.title}>
+    <section
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={`admin-section card${isDragging ? " dragging" : ""}`}
+      data-testid="admin-section"
+      aria-label={section.title}
+    >
       {editingTitle ? (
         <TitleForm
           label="Nombre de la sección"
@@ -46,13 +58,39 @@ export function AdminSection({ section, onChanged }: Props) {
         />
       ) : (
         <div className="admin-section-header">
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            className="icon-button drag-handle"
+            aria-label={`Mover la sección ${section.title}`}
+            title="Arrastra para ordenar"
+            data-testid="drag-section"
+            {...attributes}
+            {...listeners}
+          >
+            <GripIcon />
+          </button>
           <h2 data-testid="admin-section-title">{section.title}</h2>
           <div className="actions">
-            <button type="button" onClick={() => setEditingTitle(true)} data-testid="edit-section">
-              Editar nombre
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setEditingTitle(true)}
+              aria-label="Editar sección"
+              title="Editar sección"
+              data-testid="edit-section"
+            >
+              <PencilIcon />
             </button>
-            <button type="button" className="danger" onClick={() => setConfirmingDelete(true)} data-testid="delete-section">
-              Eliminar sección
+            <button
+              type="button"
+              className="icon-button danger"
+              onClick={() => setConfirmingDelete(true)}
+              aria-label="Eliminar sección"
+              title="Eliminar sección"
+              data-testid="delete-section"
+            >
+              <TrashIcon />
             </button>
           </div>
         </div>
@@ -94,16 +132,25 @@ export function AdminSection({ section, onChanged }: Props) {
                   {dish.description && <p className="dish-description">{dish.description}</p>}
                 </div>
                 <div className="actions">
-                  <button type="button" onClick={() => setEditingDishId(dish.id)} data-testid="edit-dish">
-                    Editar
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setEditingDishId(dish.id)}
+                    aria-label="Editar plato"
+                    title="Editar plato"
+                    data-testid="edit-dish"
+                  >
+                    <PencilIcon />
                   </button>
                   <button
                     type="button"
-                    className="danger"
+                    className="icon-button danger"
                     onClick={() => run(() => api.deleteDish(dish.id))}
+                    aria-label="Eliminar plato"
+                    title="Eliminar plato"
                     data-testid="delete-dish"
                   >
-                    Eliminar
+                    <TrashIcon />
                   </button>
                 </div>
               </li>

@@ -105,6 +105,7 @@ describe("Worker routes behind Access (AD1.2)", () => {
     ["POST", "/api/dish", { sectionId: 1, name: "Shoyu", price: 1, isSpicy: false }],
     ["PUT", "/api/dish/1", { name: "Shoyu", price: 1, isSpicy: false }],
     ["DELETE", "/api/dish/1", undefined],
+    ["PUT", "/api/section/order", { sectionIds: [] }],
   ])("rejects %s %s without a token", async (method, path, body) => {
     const response = await call(method, path, body, { envOverrides: accessEnv });
     expect(response.status).toBe(401);

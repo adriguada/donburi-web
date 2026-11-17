@@ -77,4 +77,27 @@ describe("Carta pública (PIC)", () => {
     await driver.close();
     await driver.switchTo().window(original);
   });
+
+  it("Diseño: el logo se desvanece al bajar por la página y reaparece al subir", async () => {
+    const dishes = Array.from({ length: 12 }, (_, i) => ({ name: `Plato ${i + 1}`, description: "Descripción", price: 10 }));
+    await seedSection("Ramen", dishes);
+    await seedSection("Bebidas", dishes);
+    await openMenu(driver);
+    const header = await waitFor(driver, "[data-testid=menu-header]");
+    const headerState = async () => ({
+      visible: await header.getAttribute("data-visible"),
+      opacity: Number(await header.getCssValue("opacity")),
+    });
+
+    await driver.executeScript("window.scrollTo(0, 600)");
+    await waitUntil(driver, async () => (await headerState()).opacity === 0, "logo did not fade out on scroll down");
+    expect(await headerState()).toEqual({ visible: "false", opacity: 0 });
+
+    await driver.executeScript("window.scrollBy(0, -200)");
+    await waitUntil(driver, async () => (await headerState()).opacity === 1, "logo did not reappear on scroll up");
+    expect((await headerState()).visible).toBe("true");
+    // It reappears at the top of the viewport (sticky), not only at the top of the page.
+    const top = await driver.executeScript<number>("return arguments[0].getBoundingClientRect().top", header);
+    expect(Math.abs(top)).toBeLessThan(5);
+  });
 });

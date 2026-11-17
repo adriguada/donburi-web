@@ -10,34 +10,61 @@
 
 /* ---------- Logo ---------- */
 .logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
+  display: block;
+  height: 180px;
+  width: auto;
 }
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.05;
-}
-.logo-name {
-  font-family: var(--serif);
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-}
-.logo-sub {
-  color: var(--muted);
-  font-size: 0.8rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
+.admin-header .logo {
+  height: 90px;
 }
 
 /* ---------- Public menu ---------- */
+/* The logo header stays at the top: it slides up and fades out while
+   scrolling down, and comes back when scrolling up (see useShowOnScrollUp).
+   It spans the full width and repeats the page pattern; the page pattern is
+   fixed to the viewport (body::before), so both line up whenever the header
+   sits at the top of the screen. */
+.menu-page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+.menu-body {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
 .menu-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0 16px;
+  background: var(--paper) var(--pattern) repeat;
+  background-size: var(--pattern-size);
+  transition:
+    transform 0.35s ease,
+    opacity 0.35s ease;
+}
+.menu-header-inner {
+  max-width: 688px;
+  margin: 0 auto;
   display: flex;
   justify-content: center;
-  padding-bottom: 16px;
+  padding: 24px 0 16px;
   border-bottom: 2px solid var(--ink);
+}
+.menu-header-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-header {
+    transition: opacity 0.2s linear;
+  }
+  .menu-header-hidden {
+    transform: none;
+  }
 }
 .menu-main {
   flex: 1;
@@ -54,27 +81,26 @@
 .menu-section-toggle {
   width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 14px 0;
   background: none;
   border: 0;
   cursor: pointer;
-  font-family: var(--serif);
-  font-size: 1.35rem;
+  font-size: 1.4rem;
   font-weight: 700;
   text-align: left;
 }
-.chevron {
-  width: 10px;
-  height: 10px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
-  transition: transform 0.15s ease;
+.toggle-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
 }
-.menu-section-toggle[aria-expanded="false"] .chevron {
-  transform: rotate(-45deg);
+.toggle-icon .icon {
+  width: 22px;
+  height: 22px;
 }
 .dish-list {
   list-style: none;
@@ -92,11 +118,11 @@
 .dish-name {
   font-weight: 600;
 }
-.dish-dots {
+/* Thin continuous line between dish and price, sitting on the baseline like "_". */
+.dish-rule {
   flex: 1;
-  border-bottom: 1px dotted var(--muted);
-  transform: translateY(-4px);
   min-width: 16px;
+  border-bottom: 1px solid var(--ink);
 }
 .dish-price {
   font-variant-numeric: tabular-nums;
@@ -142,7 +168,6 @@
   gap: 6px;
 }
 .footer-title {
-  font-family: var(--serif);
   font-size: 1.1rem;
 }
 .footer address {
@@ -157,8 +182,17 @@
   margin: 4px 0 0;
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px 20px;
+  gap: 12px;
+}
+.social-link {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ink);
+}
+.social-link:hover {
+  color: var(--accent);
 }
 
 /* ---------- Admin ---------- */
@@ -193,13 +227,14 @@
 }
 .admin-section-header {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 .admin-section-header h2 {
-  font-family: var(--serif);
+  flex: 1;
+  min-width: 0;
   font-size: 1.3rem;
 }
 .admin-dish-list {
@@ -334,6 +369,33 @@ button.primary {
 button.danger {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.icon {
+  display: block;
+}
+button.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+.drag-handle {
+  cursor: grab;
+  touch-action: none;
+  color: var(--muted);
+}
+.admin-section.dragging {
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 8px 24px rgb(26 26 26 / 0.18);
+}
+.admin-section.dragging .drag-handle {
+  cursor: grabbing;
+}
+.hint {
+  font-size: 0.9rem;
 }
 
 /* ---------- Dialog ---------- */

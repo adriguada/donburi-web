@@ -1,11 +1,10 @@
 // Restaurant details shown on the public menu.
-// TODO: replace the placeholders with the real Donburi Ramen Bar details.
 export const restaurant = {
   name: "Donburi Ramen Bar",
-  address: "Calle Ejemplo 123, 28000 Madrid",
+  address: "Calle Príncipe, 1, Gijón",
   /** Phone number as dialed, including country code. */
-  phone: "+34 600 000 000",
-  instagramHandle: "donburiramenbar",
+  phone: "984 04 93 50",
+  instagramHandle: "donburi_ramen_bar",
 };
 
 /** Digits only, as required by tel: and wa.me links. */

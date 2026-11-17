@@ -77,6 +77,8 @@ AD1. El sistema permitirá al administrador modificar la web de la carta
         AD1.1.3. El sistema permitirá al administrador eliminar una sección
             AD1.1.3.1. El sistema requerirá confirmación al administrador para eliminar la sección
             AD1.1.3.2. El sistema eliminará todos los platos asociados a la sección
+        AD1.2. El sistema permitirá al administrador ordenar las secciones en la carta
+            AD1.2.1. El administrador podŕa arrastrar las secciones para ordenarlas
     AD1.2. El sistema requerirá al administrador autenticarse con Cloudflare Access
 
 ## Plan de pruebas
@@ -93,3 +95,11 @@ AD1. El sistema permitirá al administrador modificar la web de la carta
 | PIA6 | El administrador intenta editar el nombre de un plato y pone un nombre que ya existe | La aplicación informa con un error y el mensaje que dice que el plato/item ya existe y la carta no recibe ninguna actualización |
 | PIA7 | El administrador intenta añadir un plato con un nombre que ya existe | La aplicación informa con un error y el mensaje que dice que el plato/item ya existe y la carta no recibe ninguna actualización |
 | PIA8 | El administrador edita un plato de una sección y lo marca como spicy | El plato en la carta se visualiza con un icono de una guindilla picante al lado |
+
+## Diseño de interfaz
+Los botones de editar y borrar secciones y platos serán símbolos de lápiz y papelera, respectivamente.
+La minimización de las secciones es hará pulsando en un icono '-', y la expansión de las secciones con un icono '+' localizado a arriba a la izquierda de la sección, sin estar dentro de un círculo o figura
+La tipografía para la carta será Shippori Mincho
+Los enalces de WhatsApp e Instagram serán los iconos de las aplicaciones correspondientes.
+Los precios estarán separados del plato por una línea continua fina tipo _
+El logo del restaurante se desvanecerá hacia arriba al deslizar para bajar por la página, y volverá a aparecer con una transición al deslizar para subir por la página
