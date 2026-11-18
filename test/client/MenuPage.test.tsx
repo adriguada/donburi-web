@@ -142,7 +142,10 @@ describe("MenuPage", () => {
       Object.defineProperty(window, "scrollY", { value: y, configurable: true });
       fireEvent.scroll(window);
     };
+    const logo = () => within(header).getByRole("img", { name: /logo de donburi/i });
     expect(header).toHaveAttribute("data-visible", "true");
+    expect(header).toHaveAttribute("data-compact", "false"); // full header at the top
+    expect(logo()).toHaveAttribute("data-compact", "false");
 
     scrollTo(300);
     await waitFor(() => expect(header).toHaveAttribute("data-visible", "false"));
@@ -152,11 +155,18 @@ describe("MenuPage", () => {
     scrollTo(150);
     await waitFor(() => expect(header).toHaveAttribute("data-visible", "true"));
     expect(header).not.toHaveClass("menu-header-hidden");
+    // Reappearing mid-page: smaller header, logo without the lettering.
+    expect(header).toHaveAttribute("data-compact", "true");
+    expect(header).toHaveClass("menu-header-compact");
+    expect(logo()).toHaveAttribute("data-compact", "true");
+    expect(logo().getAttribute("src")).toMatch(/compact/);
 
     scrollTo(600);
     await waitFor(() => expect(header).toHaveAttribute("data-visible", "false"));
     scrollTo(0);
     await waitFor(() => expect(header).toHaveAttribute("data-visible", "true"));
+    expect(header).toHaveAttribute("data-compact", "false"); // back to the full header at the top
+    expect(logo().getAttribute("src")).not.toMatch(/compact/);
   });
 
   it("opens on the header and an illustration, with a 'Carta' arrow leading down to the menu (Diseño de interfaz)", async () => {

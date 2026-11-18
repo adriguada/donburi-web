@@ -1,27 +1,41 @@
 import { useEffect, useState } from "react";
 
+export interface ScrollHeaderState {
+  /** False while the user scrolls down the page; true when they scroll up or are at the top. */
+  visible: boolean;
+  /** True only at the very top of the page (where the full-size header is shown). */
+  atTop: boolean;
+}
+
+/** How close to the top (px) still counts as "at the top". */
+const TOP_ZONE = 4;
+
 /**
- * Returns false while the user scrolls down the page and true when they
- * scroll up (or are at the top). Movements smaller than `threshold` px are
+ * Tracks the scroll direction to hide the header while scrolling down and
+ * show it again when scrolling up. Movements smaller than `threshold` px are
  * ignored so small jitters (e.g. touch scrolling) don't toggle it.
  */
-export function useShowOnScrollUp(threshold = 8): boolean {
-  const [visible, setVisible] = useState(true);
+export function useShowOnScrollUp(threshold = 8): ScrollHeaderState {
+  const [state, setState] = useState<ScrollHeaderState>({ visible: true, atTop: true });
 
   useEffect(() => {
     let lastY = Math.max(0, window.scrollY);
     let frame = 0;
 
+    const set = (visible: boolean, atTop: boolean) =>
+      setState((prev) => (prev.visible === visible && prev.atTop === atTop ? prev : { visible, atTop }));
+
     const update = () => {
       frame = 0;
       // Clamp: iOS rubber-band scrolling reports negative values at the top.
       const y = Math.max(0, window.scrollY);
-      if (y === 0) {
-        setVisible(true);
+      const atTop = y <= TOP_ZONE;
+      if (atTop) {
+        set(true, true);
       } else if (y - lastY > threshold) {
-        setVisible(false);
+        set(false, false);
       } else if (lastY - y > threshold) {
-        setVisible(true);
+        set(true, false);
       } else {
         return; // Keep lastY so slow scrolling still adds up past the threshold.
       }
@@ -39,5 +53,5 @@ export function useShowOnScrollUp(threshold = 8): boolean {
     };
   }, [threshold]);
 
-  return visible;
+  return state;
 }

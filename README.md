@@ -11,7 +11,7 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 - Diseño adaptado a móviles, tablets y PCs.
 - Muestra el logo del restaurante.
 - Fondo claro con patrón *seigaiha* y tipografía Shippori Mincho en tinta oscura.
-- El logo cuelga de la parte superior dentro de un marco terracota; se desvanece hacia arriba al bajar por la carta y reaparece al subir.
+- El logo cuelga de la parte superior dentro de un marco terracota; se desvanece hacia arriba al bajar por la carta y reaparece al subir, en un tamaño más pequeño y sin el texto «DONBURI RAMEN» (arriba del todo vuelve al tamaño completo).
 - Al abrir la carta se ven el logo y la ilustración del gato comiendo ramen; abajo, «Carta» con una flecha animada invita a bajar (o lleva hasta la carta al pulsarla).
 - Los precios se separan del plato con una línea fina continua.
 - Cada sección muestra su título centrado y, debajo, su título en japonés (p. ej. «Ramen» / «ラーメン»).

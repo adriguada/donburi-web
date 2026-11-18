@@ -99,6 +99,24 @@ describe("Carta pública (PIC)", () => {
     // It reappears at the top of the viewport (sticky), not only at the top of the page.
     const top = await driver.executeScript<number>("return arguments[0].getBoundingClientRect().top", header);
     expect(Math.abs(top)).toBeLessThan(5);
+
+    // Mid-page it comes back smaller, with the bowl-only logo (no lettering).
+    const frameSize = () =>
+      driver.executeScript<number>("return document.querySelector('.menu-header-inner').getBoundingClientRect().width");
+    const fullSize = await driver.executeScript<number>(
+      "return parseFloat(getComputedStyle(document.querySelector('.menu-page')).getPropertyValue('--header-size'))",
+    );
+    await waitUntil(driver, async () => (await frameSize()) < fullSize * 0.6, "header did not shrink when reappearing");
+    const logo = await header.findElement(By.css("img"));
+    expect(await logo.getAttribute("data-compact")).toBe("true");
+    // Shrinking the header must not move the page.
+    const scrollBefore = await driver.executeScript<number>("return scrollY");
+    expect(scrollBefore).toBe(400);
+
+    // Back at the very top: full-size header with the lettering again.
+    await driver.executeScript("window.scrollTo(0, 0)");
+    await waitUntil(driver, async () => Math.round(await frameSize()) === fullSize, "header did not grow back at the top");
+    expect(await logo.getAttribute("data-compact")).toBe("false");
   });
 
   it("Diseño: al abrir la carta se ven el header, la imagen y la flecha «Carta»; la carta empieza más abajo", async () => {

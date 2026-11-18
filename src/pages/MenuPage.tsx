@@ -11,7 +11,9 @@ type State = { status: "loading" } | { status: "error"; message: string } | { st
 
 export function MenuPage() {
   const [state, setState] = useState<State>({ status: "loading" });
-  const logoVisible = useShowOnScrollUp();
+  const { visible: logoVisible, atTop } = useShowOnScrollUp();
+  // When the header comes back mid-page it is smaller and the logo loses its lettering.
+  const compactHeader = !atTop;
 
   useEffect(() => {
     let cancelled = false;
@@ -27,12 +29,13 @@ export function MenuPage() {
   return (
     <div className="menu-page">
       <header
-        className={`menu-header${logoVisible ? "" : " menu-header-hidden"}`}
+        className={`menu-header${logoVisible ? "" : " menu-header-hidden"}${compactHeader ? " menu-header-compact" : ""}`}
         data-testid="menu-header"
         data-visible={logoVisible}
+        data-compact={compactHeader}
       >
         <div className="menu-header-inner">
-          <Logo variant="light" />
+          <Logo variant="light" compact={compactHeader} />
         </div>
       </header>
       <Hero />

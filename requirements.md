@@ -107,5 +107,5 @@ Al minimizar o maximizar una sección, habrá una transición suave
 La tipografía para la carta será Shippori Mincho
 Los enlaces de WhatsApp e Instagram serán los iconos de las aplicaciones correspondientes.
 Los precios estarán separados del plato por una línea continua fina tipo _
-El logo del restaurante se desvanecerá hacia arriba al deslizar para bajar por la página, y volverá a aparecer con una transición al deslizar para subir por la página
+El logo del restaurante se desvanecerá hacia arriba al deslizar para bajar por la página, y volverá a aparecer con una transición al deslizar para subir por la página. Al subir por la página, el tamaño del header será más reducido y el logo no tendrá el texto de la parte inferior.
 Al abrir la carta, aparecerán el header y una imagen en el centro. En la parte de abajo habrá una flecha tipo > (no ->) que apunte hacia abajo y haga una pequeña animación de movimiento, indicando que hay que bajar por la web para llegar a la carta. Encima de la flecha pondrá "Carta"

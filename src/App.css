@@ -38,8 +38,12 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  /* Always reserve the full height, so shrinking the frame (compact mode)
+     never shifts the page; the strip around the frame is transparent. */
+  height: var(--header-size);
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   pointer-events: none;
   transition:
     transform 0.35s ease,
@@ -48,6 +52,8 @@
 .menu-page {
   /* Size of the logo frame; the opening screen (hero) fills the rest of the first viewport. */
   --header-size: 240px;
+  /* Smaller frame shown when the header reappears mid-page (scrolling up). */
+  --header-compact-size: 120px;
 }
 .menu-header-inner {
   pointer-events: auto;
@@ -61,9 +67,24 @@
   /* Keep the logo inside the frame's inner line (the bottom trim is ~21px tall at this size). */
   padding-bottom: 21px;
   box-shadow: 0 6px 16px rgb(60 35 20 / 0.18);
+  transition:
+    width 0.35s ease,
+    height 0.35s ease,
+    padding 0.35s ease;
 }
 .menu-header .logo {
   height: 172px;
+  transition: height 0.35s ease;
+}
+/* Compact header (reappearing mid-page): smaller frame, bowl-only logo.
+   Double class so these win over the phone sizes at the end of the file. */
+.menu-header.menu-header-compact .menu-header-inner {
+  width: var(--header-compact-size);
+  height: var(--header-compact-size);
+  padding-bottom: calc(var(--header-compact-size) * 0.09);
+}
+.menu-header.menu-header-compact .logo {
+  height: calc(var(--header-compact-size) * 0.62);
 }
 .menu-header-hidden {
   transform: translateY(-100%);
@@ -73,6 +94,10 @@
 @media (prefers-reduced-motion: reduce) {
   .menu-header {
     transition: opacity 0.2s linear;
+  }
+  .menu-header-inner,
+  .menu-header .logo {
+    transition: none;
   }
   .menu-header-hidden {
     transform: none;
@@ -612,6 +637,7 @@ button.icon-button {
   }
   .menu-page {
     --header-size: 170px;
+    --header-compact-size: 96px;
   }
   .menu-header-inner {
     padding-bottom: 15px;
