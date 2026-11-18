@@ -145,7 +145,14 @@ Las pruebas de Selenium arrancan su propio servidor de desarrollo (puerto 5317) 
 Todo (frontend y API) se despliega como un único Cloudflare Worker con Wrangler. Antes del primer despliegue:
 
 1. Crear la base de datos con `npx wrangler d1 create donburi-db` y copiar su `database_id` en `wrangler.jsonc`.
-2. Crear una aplicación de Cloudflare Access que proteja `/admin*`, `/api/section*` y `/api/dish*`, y rellenar `ACCESS_TEAM_DOMAIN` y `ACCESS_AUD` en `wrangler.jsonc`. El Worker verifica el token de Access en cada petición de administración y las rechaza si estas variables no están configuradas.
+2. Crear una aplicación de Cloudflare Access (self-hosted) sobre la dirección del Worker con las rutas `admin`, `api/section` y `api/dish`, con una política que solo permita el correo del administrador, y rellenar `ACCESS_TEAM_DOMAIN` y `ACCESS_AUD` en `wrangler.jsonc`.
+3. Guardar ese mismo correo como secret del Worker (varios correos, separados por comas):
+   ```bash
+   npx wrangler secret put ADMIN_EMAILS
+   ```
+   Es una segunda barrera: aunque la política de Access se cambie por error, el Worker solo acepta a los correos de esta lista.
+
+El Worker verifica el token de Access en cada petición de administración y las rechaza si falta cualquiera de estos valores.
 
 ```bash
 # Aplicar migraciones en producción

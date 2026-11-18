@@ -21,6 +21,7 @@ const MESSAGES = {
   invalidJson: "El cuerpo de la petición no es JSON válido.",
   unauthorized: "Acceso no autorizado.",
   authNotConfigured: "La autenticación de Cloudflare Access no está configurada.",
+  forbidden: "Tu cuenta no tiene permiso para administrar la carta.",
   notFound: "Recurso no encontrado.",
 };
 
@@ -51,9 +52,10 @@ async function requireAdmin(request: Request, env: AppEnv): Promise<Response | n
   const auth = await authenticate(request, env);
   if (auth.ok) return null;
   if (auth.reason === "not_configured") {
-    console.error("ACCESS_TEAM_DOMAIN / ACCESS_AUD are not set; rejecting admin request.");
+    console.error("ACCESS_TEAM_DOMAIN / ACCESS_AUD / ADMIN_EMAILS are not set; rejecting admin request.");
     return error("AUTH_NOT_CONFIGURED", MESSAGES.authNotConfigured, 500);
   }
+  if (auth.reason === "forbidden_email") return error("FORBIDDEN", MESSAGES.forbidden, 403);
   return error("UNAUTHORIZED", MESSAGES.unauthorized, 401);
 }
 
@@ -158,9 +160,9 @@ export default {
     if (path === "/admin" || path.startsWith("/admin/")) {
       const auth = await authenticate(request, env);
       if (!auth.ok) {
-        return auth.reason === "not_configured"
-          ? new Response(MESSAGES.authNotConfigured, { status: 500 })
-          : new Response(MESSAGES.unauthorized, { status: 401 });
+        if (auth.reason === "not_configured") return new Response(MESSAGES.authNotConfigured, { status: 500 });
+        if (auth.reason === "forbidden_email") return new Response(MESSAGES.forbidden, { status: 403 });
+        return new Response(MESSAGES.unauthorized, { status: 401 });
       }
     }
 

@@ -55,6 +55,7 @@ export type ApiErrorCode =
   | "DISH_EXISTS"
   | "ORDER_CONFLICT"
   | "UNAUTHORIZED"
+  | "FORBIDDEN"
   | "AUTH_NOT_CONFIGURED";
 
 export interface ApiError {

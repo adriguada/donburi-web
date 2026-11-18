@@ -1,11 +1,12 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type CryptoKey, type JWTVerifyGetKey } from "jose";
 import { beforeAll, describe, expect, it } from "vitest";
-import { authenticate, getAccessToken, verifyAccessToken } from "../../worker/auth";
+import { authenticate, getAccessToken, parseEmailList, verifyAccessToken } from "../../worker/auth";
 import { call } from "./helpers";
 
 const TEAM = "donburi.cloudflareaccess.com";
 const AUD = "test-aud-tag";
-const accessEnv = { DEV_AUTH_BYPASS: undefined, ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD };
+const ADMIN = "admin@example.com";
+const accessEnv = { DEV_AUTH_BYPASS: undefined, ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD, ADMIN_EMAILS: ADMIN };
 
 let privateKey: CryptoKey;
 let otherPrivateKey: CryptoKey;
@@ -21,9 +22,10 @@ beforeAll(async () => {
 });
 
 function sign(
-  overrides: { iss?: string; aud?: string; exp?: string | number; key?: CryptoKey } = {},
+  overrides: { iss?: string; aud?: string; exp?: string | number; key?: CryptoKey; email?: string | null } = {},
 ): Promise<string> {
-  return new SignJWT({ email: "admin@example.com" })
+  const email = overrides.email === undefined ? ADMIN : overrides.email;
+  return new SignJWT(email === null ? {} : { email })
     .setProtectedHeader({ alg: "RS256", kid: "k1" })
     .setIssuer(overrides.iss ?? `https://${TEAM}`)
     .setAudience(overrides.aud ?? AUD)
@@ -89,7 +91,41 @@ describe("authenticate", () => {
 
   it("verifies the header token against the configured team and audience", async () => {
     const request = new Request("https://x", { headers: { "Cf-Access-Jwt-Assertion": await sign() } });
-    expect((await authenticate(request, accessEnv, jwks)).ok).toBe(true);
+    expect(await authenticate(request, accessEnv, jwks)).toEqual({ ok: true, email: ADMIN });
+  });
+
+  const withToken = async (overrides: Parameters<typeof sign>[0]) =>
+    new Request("https://x", { headers: { "Cf-Access-Jwt-Assertion": await sign(overrides) } });
+
+  it("rejects a valid Access token for an email that is not in ADMIN_EMAILS (second barrier)", async () => {
+    // The Access policy let this user in (the token is genuine), but the Worker still says no.
+    const result = await authenticate(await withToken({ email: "intruder@gmail.com" }), accessEnv, jwks);
+    expect(result).toEqual({ ok: false, reason: "forbidden_email" });
+  });
+
+  it("compares emails case-insensitively and accepts a comma-separated list", async () => {
+    const env = { ...accessEnv, ADMIN_EMAILS: " Other@Example.com ,  ADMIN@example.COM " };
+    expect((await authenticate(await withToken({ email: "Admin@Example.com" }), env, jwks)).ok).toBe(true);
+    expect((await authenticate(await withToken({ email: "other@example.com" }), env, jwks)).ok).toBe(true);
+  });
+
+  it("rejects tokens without an email (e.g. service tokens)", async () => {
+    expect(await authenticate(await withToken({ email: null }), accessEnv, jwks)).toEqual({
+      ok: false,
+      reason: "forbidden_email",
+    });
+  });
+
+  it.each([undefined, "", " , "])("fails closed when ADMIN_EMAILS is %j", async (ADMIN_EMAILS) => {
+    const result = await authenticate(await withToken({}), { ...accessEnv, ADMIN_EMAILS }, jwks);
+    expect(result).toEqual({ ok: false, reason: "not_configured" });
+  });
+});
+
+describe("parseEmailList", () => {
+  it("trims, lower-cases and drops blanks", () => {
+    expect([...parseEmailList(" A@x.com,, b@Y.com ,")]).toEqual(["a@x.com", "b@y.com"]);
+    expect(parseEmailList(undefined).size).toBe(0);
   });
 });
 
@@ -118,6 +154,14 @@ describe("Worker routes behind Access (AD1.2)", () => {
       headers: { "Cf-Access-Jwt-Assertion": "not-a-jwt" },
     });
     expect(response.status).toBe(401);
+  });
+
+  it("returns 500 when the ADMIN_EMAILS secret is missing, even with Access configured", async () => {
+    const response = await call("POST", "/api/section", { title: "Ramen" }, {
+      envOverrides: { ...accessEnv, ADMIN_EMAILS: undefined },
+    });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({ error: "AUTH_NOT_CONFIGURED" });
   });
 
   it("returns 500 for write requests when Access is not configured", async () => {
