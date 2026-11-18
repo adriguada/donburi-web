@@ -12,14 +12,17 @@
 		"not_found_handling": "single-page-application",
 		// The Worker runs before static assets for the API and the admin panel,
 		// so it can verify the Cloudflare Access token before serving them.
-		"run_worker_first": ["/api/*", "/admin", "/admin/*"]
+		"run_worker_first": [
+			"/api/*",
+			"/admin",
+			"/admin/*"
+		]
 	},
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "donburi-db",
-			// Placeholder: replace with the id printed by `wrangler d1 create donburi-db`.
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "dfff7642-5e25-4b68-9ea2-38e841f6b061",
 			"migrations_dir": "migrations"
 		}
 	],

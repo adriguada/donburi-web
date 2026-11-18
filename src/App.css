@@ -45,10 +45,14 @@
     transform 0.35s ease,
     opacity 0.35s ease;
 }
+.menu-page {
+  /* Size of the logo frame; the opening screen (hero) fills the rest of the first viewport. */
+  --header-size: 240px;
+}
 .menu-header-inner {
   pointer-events: auto;
-  width: 240px;
-  height: 240px;
+  width: var(--header-size);
+  height: var(--header-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,10 +90,13 @@
 .menu-section-heading {
   font-size: inherit;
 }
+/* Section heading: −/+ icon at the top left, titles centred on the screen
+   (an empty column on the right balances the icon). */
 .menu-section-toggle {
   width: 100%;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 28px 1fr 28px;
+  align-items: start;
   gap: 10px;
   padding: 14px 0;
   background: none;
@@ -97,7 +104,24 @@
   cursor: pointer;
   font-size: 1.4rem;
   font-weight: 700;
-  text-align: left;
+  text-align: center;
+}
+.menu-section-toggle .toggle-icon {
+  /* Line up with the first line of the title. */
+  margin-top: calc((1lh - 28px) / 2);
+}
+.section-titles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+.section-title-ja {
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  line-height: 1.4;
 }
 .toggle-icon {
   display: inline-grid;
@@ -167,6 +191,7 @@
 .wip {
   color: var(--muted);
   font-style: italic;
+  text-align: center;
   padding: 4px 0 16px;
 }
 .wip-menu {
@@ -183,6 +208,70 @@
 }
 .status.error {
   color: var(--danger);
+}
+
+/* ---------- Opening screen (hero) ---------- */
+/* Header + hero fill exactly the first screen; the menu starts below the fold. */
+.hero {
+  min-height: calc(100svh - var(--header-size));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 12px;
+}
+.hero-image {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-image img {
+  display: block;
+  /* Whatever height is left after the header and the "Carta" link (~130px),
+     so the arrow always stays on the first screen. */
+  height: clamp(160px, calc(100svh - var(--header-size) - 130px), 520px);
+  max-width: 86vw;
+  object-fit: contain;
+}
+.hero-scroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 24px 4px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.hero-scroll-label {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.hero-scroll-arrow .icon {
+  width: 30px;
+  height: 30px;
+}
+/* Small downward nudge, repeating, to suggest scrolling. */
+.hero-scroll-arrow {
+  animation: hero-nudge 1.8s ease-in-out infinite;
+}
+@keyframes hero-nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(7px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-scroll-arrow {
+    animation: none;
+  }
+}
+.menu-main {
+  scroll-margin-top: 16px;
 }
 
 /* ---------- Footer ---------- */
@@ -268,10 +357,15 @@
   justify-content: space-between;
   gap: 8px;
 }
-.admin-section-header h2 {
+.admin-section-titles {
   flex: 1;
   min-width: 0;
+}
+.admin-section-header h2 {
   font-size: 1.3rem;
+}
+.admin-section-titles .section-title-ja {
+  font-size: 0.9rem;
 }
 .admin-dish-list {
   list-style: none;
@@ -516,9 +610,10 @@ button.icon-button {
   .dish-description {
     font-size: 0.875rem; /* 14px */
   }
+  .menu-page {
+    --header-size: 170px;
+  }
   .menu-header-inner {
-    width: 170px;
-    height: 170px;
     padding-bottom: 15px;
   }
   .menu-header .logo {

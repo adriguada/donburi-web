@@ -37,9 +37,10 @@ describe("Panel de administración (PIA)", () => {
     await resetMenu();
   });
 
-  async function submitNewSection(title: string) {
+  async function submitNewSection(title: string, titleJa?: string) {
     const form = await waitFor(driver, "[data-testid=new-section-form]");
     await fill(form, "input[name=title]", title);
+    if (titleJa) await fill(form, "input[name=titleJa]", titleJa);
     await form.findElement(By.css("button[type=submit]")).click();
   }
 
@@ -81,6 +82,29 @@ describe("Panel de administración (PIA)", () => {
 
     await openMenu(driver);
     expect(await readMenu(driver)).toEqual([{ title: "Entrantes", dishes: [], emptyMessage: "Work In Progress..." }]);
+  });
+
+  it("CL1.2.6: una sección creada con nombre en japonés lo muestra centrado bajo el título en la carta", async () => {
+    await openAdmin(driver);
+    await submitNewSection("Ramen", "ラーメン");
+    await adminSection(driver, "Ramen");
+
+    await openMenu(driver);
+    const section = await waitFor(driver, "[data-testid=menu-section]");
+    const ja = await section.findElement(By.css("[data-testid=section-title-ja]"));
+    expect(await ja.getText()).toBe("ラーメン");
+    const layout = await driver.executeScript<{ title: number; ja: number; centre: number; jaBelow: boolean }>(
+      `const s = arguments[0].getBoundingClientRect();
+       const t = arguments[0].querySelector("[data-testid=section-title]").getBoundingClientRect();
+       const j = arguments[0].querySelector("[data-testid=section-title-ja]").getBoundingClientRect();
+       return { title: t.left + t.width / 2, ja: j.left + j.width / 2, centre: s.left + s.width / 2, jaBelow: j.top >= t.bottom - 1 };`,
+      section,
+    );
+    expect(Math.abs(layout.title - layout.centre)).toBeLessThan(2);
+    expect(Math.abs(layout.ja - layout.centre)).toBeLessThan(2);
+    expect(layout.jaBelow).toBe(true);
+    // Rendered with Shippori Mincho's Japanese glyphs, not a fallback font.
+    expect(await driver.executeScript("return document.fonts.check('16px \"Shippori Mincho\"', 'ラーメン')")).toBe(true);
   });
 
   it("PIA2: añadir una sección con un nombre existente muestra un error", async () => {
@@ -210,7 +234,7 @@ describe("Panel de administración (PIA)", () => {
     ]);
   });
 
-  it("AD1.2.1: el administrador arrastra una sección para cambiar su orden en la carta", async () => {
+  it("AD1.1.4.1: el administrador arrastra una sección para cambiar su orden en la carta", async () => {
     await seedSection("Entrantes", [{ name: "Gyozas", price: 6 }]);
     await seedSection("Ramen", RAMEN);
     await seedSection("Postres");

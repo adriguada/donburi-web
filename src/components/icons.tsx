@@ -99,3 +99,12 @@ export function WhatsAppIcon() {
     </svg>
   );
 }
+
+/** Downward chevron ("›" turned to point down). */
+export function ChevronDownIcon() {
+  return (
+    <Icon>
+      <path d="M5 9l7 7 7-7" />
+    </Icon>
+  );
+}

@@ -11,12 +11,13 @@ const menu: Menu = {
     {
       id: 1,
       title: "Ramen",
+      titleJa: "ラーメン",
       dishes: [
         { id: 1, sectionId: 1, name: "Tonkotsu", description: "Caldo de cerdo cremoso", price: 13.5, spiciness: 0 },
         { id: 2, sectionId: 1, name: "Tantanmen", description: null, price: 14, spiciness: 2 },
       ],
     },
-    { id: 2, title: "Postres", dishes: [] },
+    { id: 2, title: "Postres", titleJa: null, dishes: [] },
   ],
 };
 
@@ -68,7 +69,7 @@ describe("MenuPage", () => {
   it("lets the customer collapse and expand a section (CL1.2.4)", async () => {
     const user = userEvent.setup();
     renderWithMenu(menu);
-    const toggle = await screen.findByRole("button", { name: "Ramen" });
+    const toggle = await screen.findByRole("button", { name: /^Ramen/ });
     const icon = () => within(toggle).getByTestId("section-toggle-icon");
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(icon()).toHaveAttribute("data-state", "expanded"); // '−' icon
@@ -89,8 +90,20 @@ describe("MenuPage", () => {
 
   it("places the −/+ icon before the section title (Diseño de interfaz)", async () => {
     renderWithMenu(menu);
-    const toggle = await screen.findByRole("button", { name: "Ramen" });
+    const toggle = await screen.findByRole("button", { name: /^Ramen/ });
     expect(toggle.firstElementChild).toHaveAttribute("data-testid", "section-toggle-icon");
+  });
+
+  it("shows the Japanese title under the section title, only when it has one (CL1.2.6)", async () => {
+    renderWithMenu(menu);
+    const ramen = await screen.findByRole("region", { name: "Ramen" });
+    const titles = within(ramen).getByTestId("section-title").parentElement!;
+    expect(titles.children[0]).toHaveTextContent("Ramen");
+    expect(titles.children[1]).toHaveTextContent("ラーメン");
+    expect(titles.children[1]).toHaveAttribute("lang", "ja");
+
+    const desserts = screen.getByRole("region", { name: "Postres" });
+    expect(within(desserts).queryByTestId("section-title-ja")).not.toBeInTheDocument();
   });
 
   it("shows address, phone, WhatsApp and Instagram in the footer (CL1.3)", async () => {
@@ -144,6 +157,19 @@ describe("MenuPage", () => {
     await waitFor(() => expect(header).toHaveAttribute("data-visible", "false"));
     scrollTo(0);
     await waitFor(() => expect(header).toHaveAttribute("data-visible", "true"));
+  });
+
+  it("opens on the header and an illustration, with a 'Carta' arrow leading down to the menu (Diseño de interfaz)", async () => {
+    renderWithMenu(menu);
+    await screen.findByText("Tonkotsu");
+    const hero = screen.getByTestId("hero");
+    // The hero comes right after the header and before the menu.
+    expect(screen.getByTestId("menu-header").nextElementSibling).toBe(hero);
+    expect(within(hero).getByRole("img", { name: /gato negro comiendo ramen/i })).toBeInTheDocument();
+    const link = within(hero).getByRole("link", { name: "Carta" });
+    expect(link).toHaveAttribute("href", "#carta");
+    expect(link.querySelector("svg")).not.toBeNull(); // the down chevron
+    expect(document.getElementById("carta")).toContainElement(screen.getByText("Tonkotsu"));
   });
 
   it("shows an error when the menu cannot be loaded", async () => {

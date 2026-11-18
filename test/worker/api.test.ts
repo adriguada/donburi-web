@@ -18,7 +18,7 @@ describe("GET /api/menu", () => {
 
     const menu = await getMenu();
     expect(menu.sections.map((s) => s.title)).toEqual(["Entrantes", "Ramen"]);
-    expect(menu.sections[0]).toEqual({ id: starters.id, title: "Entrantes", dishes: [] });
+    expect(menu.sections[0]).toEqual({ id: starters.id, title: "Entrantes", titleJa: null, dishes: [] });
     expect(menu.sections[1].dishes).toEqual([
       expect.objectContaining({ name: "Tonkotsu", description: "Caldo de cerdo", price: 13.5, spiciness: 0, sectionId: ramen.id }),
       expect.objectContaining({ name: "Tantanmen", description: null, price: 14, spiciness: 2 }),
@@ -36,7 +36,36 @@ describe("sections", () => {
   it("creates a section (AD1.1.1)", async () => {
     const response = await call("POST", "/api/section", { title: "  Postres  " });
     expect(response.status).toBe(201);
-    expect(await response.json()).toEqual({ id: expect.any(Number), title: "Postres", dishes: [] });
+    expect(await response.json()).toEqual({ id: expect.any(Number), title: "Postres", titleJa: null, dishes: [] });
+  });
+
+  it("stores an optional Japanese title, trimmed (CL1.2.6)", async () => {
+    const response = await call("POST", "/api/section", { title: "Ramen", titleJa: "  ラーメン  " });
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ title: "Ramen", titleJa: "ラーメン" });
+    expect((await getMenu()).sections[0]).toMatchObject({ title: "Ramen", titleJa: "ラーメン" });
+  });
+
+  it("treats a missing, null or blank Japanese title as none", async () => {
+    for (const [title, titleJa] of [["A", undefined], ["B", null], ["C", "   "]]) {
+      const response = await call("POST", "/api/section", { title, titleJa });
+      expect(await response.json()).toMatchObject({ titleJa: null });
+    }
+  });
+
+  it("validates the Japanese title", async () => {
+    for (const titleJa of [42, "あ".repeat(101)]) {
+      const response = await call("POST", "/api/section", { title: "Ramen", titleJa });
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("updates and clears the Japanese title (AD1.1.2.3)", async () => {
+    const section = await createSection("Postres");
+    let response = await call("PUT", `/api/section/${section.id}`, { title: "Postres", titleJa: "デザート" });
+    expect(await response.json()).toMatchObject({ title: "Postres", titleJa: "デザート" });
+    response = await call("PUT", `/api/section/${section.id}`, { title: "Postres", titleJa: "" });
+    expect(await response.json()).toMatchObject({ titleJa: null });
   });
 
   it("requires a title (AD1.1.1.1)", async () => {
@@ -186,7 +215,7 @@ describe("dishes", () => {
     expect(response.status).toBe(404);
   });
 
-  it("rejects a duplicate name in the same section (AD1.1.2.2.2.1.1)", async () => {
+  it("rejects a duplicate name in the same section (AD1.1.2.2.1.1)", async () => {
     const section = await createSection("Ramen");
     await createDish(section.id, "Shoyu");
     const response = await call("POST", "/api/dish", { sectionId: section.id, name: "shoyu", price: 1, spiciness: 2 });
@@ -258,7 +287,7 @@ describe("unknown routes", () => {
   });
 });
 
-describe("PUT /api/section/order (AD1.2: ordenar secciones)", () => {
+describe("PUT /api/section/order (AD1.1.4: ordenar secciones)", () => {
   it("adds new sections at the end of the menu", async () => {
     await createSection("Ramen");
     await createSection("Postres");

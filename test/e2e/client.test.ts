@@ -100,4 +100,28 @@ describe("Carta pública (PIC)", () => {
     const top = await driver.executeScript<number>("return arguments[0].getBoundingClientRect().top", header);
     expect(Math.abs(top)).toBeLessThan(5);
   });
+
+  it("Diseño: al abrir la carta se ven el header, la imagen y la flecha «Carta»; la carta empieza más abajo", async () => {
+    // Long enough that the page can scroll the menu to the top of the screen.
+    await seedSection("Ramen", Array.from({ length: 12 }, (_, i) => ({ name: `Plato ${i + 1}`, price: 10 })));
+    await openMenu(driver);
+    const layout = await driver.executeScript<{ vh: number; image: number; arrow: number; menu: number }>(`
+      const box = (selector) => document.querySelector(selector).getBoundingClientRect();
+      return { vh: innerHeight, image: box(".hero-image img").height, arrow: box(".hero-scroll-arrow").bottom, menu: box("#carta").top };
+    `);
+    expect(layout.image).toBeGreaterThan(100);
+    expect(layout.arrow).toBeLessThanOrEqual(layout.vh); // arrow visible on the first screen
+    expect(layout.menu).toBeGreaterThanOrEqual(layout.vh); // menu below the fold
+    const animation = await driver.executeScript<string>(
+      "return getComputedStyle(document.querySelector('.hero-scroll-arrow')).animationName",
+    );
+    expect(animation).toBe("hero-nudge");
+
+    await (await waitFor(driver, "[data-testid=scroll-to-menu]")).click();
+    await waitUntil(
+      driver,
+      async () => (await driver.executeScript<number>("return document.querySelector('#carta').getBoundingClientRect().top")) < layout.vh / 2,
+      "clicking «Carta» did not scroll to the menu",
+    );
+  });
 });

@@ -1,1 +1,3 @@
+# Local development only (never deployed). Copy to .dev.vars.
+# Skips Cloudflare Access so the admin panel works on the dev server.
 DEV_AUTH_BYPASS=true

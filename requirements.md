@@ -1,11 +1,11 @@
 # Donburi Web App
 
-Este proyecto es una aplicación web para un restuarante de ramen: Donburi Ramen Bar.
+Este proyecto es una aplicación web para un restaurante de ramen: Donburi Ramen Bar.
 A continuación se describe la arquitectura y análisis de requisitos y alcance del proyecto.
 
 ## Arquitectura
 ### Aplicación Web (React.js)
-La aplicación web será un proyecto React.js, que servirá una aplicación adapatada para dispositivos móviles, tablets y PCs normales. Estará servida con Cloudflare Workers (static assets)
+La aplicación web será un proyecto React.js, que servirá una aplicación adaptada para dispositivos móviles, tablets y PCs normales. Estará servida con Cloudflare Workers (static assets)
 Existirán dos páginas principales en esta web: 
 - https://<dominio-cloudflare>: la página principal en la que se mostrará la carta
 - https://<dominio-cloudflare>/admin/: la página del administrador para editar la web
@@ -22,7 +22,7 @@ Estos serán los endpoints principales para este proyecto:
 - DELETE    https://<dominio-cloudflare>/api/section/:id   -> eliminar una sección del menú
 
 ### Almacenamiento
-El backend de almacenamiento será el servicio Cloudflare D1. No se guardarán imágenes de platos ni de ningún otro tipo, todo el almacenamiento persistido será texto o númerico.
+El backend de almacenamiento será el servicio Cloudflare D1. No se guardarán imágenes de platos ni de ningún otro tipo, todo el almacenamiento persistido será texto o numérico.
 
 ### Tests
 El proyecto contará con una batería de tests local para probar los Workers y el almacenamiento en local, así como el cliente React.
@@ -31,7 +31,7 @@ El proyecto contará con una batería de tests local para probar los Workers y e
 Se describen las entidades del dominio de la aplicación:
 
 | Entidad | Descripción | Campos |
-| Section | Sección de la carta/menú (Entrantes, Principal, Postres, Bebidas, etc) | id, title |
+| Section | Sección de la carta/menú (Entrantes, Principal, Postres, Bebidas, etc) | id, title, title_ja (opcional: título en japonés, p. ej. ラーメン), order (entero: posición de la sección en la carta) |
 | Dish | Plato/Bebida/Postre del menú (Tonkotsu Ramen, HighBall, Tiramisú, etc) | id, section_id, name, description (optional), price, spiciness (entero de 0 a 3: número de guindillas) |
 
 ## Análisis de requisitos funcionales
@@ -42,7 +42,8 @@ CL1. El sistema mostrará la carta/menú del restaurante
         CL1.2.2. El sistema mostrará junto a cada plato tantos iconos de guindilla como indique su nivel de picante (de 0 a 3; ninguno si es 0)
         CL1.2.3. El sistema mostrará nombre, descripción y precio para todos los items de la sección
         CL1.2.4. El sistema permitirá al cliente minimizar o ampliar una sección de la carta
-        CL1.2.5. El sistema mostrará el mensaje "Work In Progress.." en una sección vacía
+        CL1.2.5. El sistema mostrará el mensaje "Work In Progress..." en una sección vacía
+        CL1.2.6. El sistema mostrará el título de cada sección centrado y, debajo, su título en japonés (si la sección lo tiene)
     CL1.3. El sistema mostrará información de contacto y dirección al final de la carta
         CL1.3.1. El sistema mostrará la dirección del restaurante
         CL1.3.2. El sistema mostrará el enlace a la cuenta de Instagram del restaurante
@@ -56,17 +57,18 @@ AD1. El sistema permitirá al administrador modificar la web de la carta
     AD1.1. El sistema permitirá al administrador gestionar las secciones de la carta
         AD1.1.1. El sistema permitirá al administrador añadir una nueva sección
             AD1.1.1.1. El sistema requerirá al administrador un nombre para crear la nueva sección
-            AD1.1.1.1.1. El nombre de la sección no debe existir todavía en la carta
+                AD1.1.1.1.1. El nombre de la sección no debe existir todavía en la carta
+            AD1.1.1.2. El sistema permitirá al administrador indicar, de forma opcional, el nombre de la sección en japonés
         AD1.1.2. El sistema permitirá al administrador editar una sección
             AD1.1.2.1. El administrador podrá editar el nombre de la sección
             AD1.1.2.2. El administrador podrá gestionar los platos/items de la sección
                 AD1.1.2.2.1. El administrador podrá añadir un nuevo plato/item a la sección
-                    AD1.1.2.2.2.1.1. El plato/item no debe tener el mismo "title" que otro de la misma sección
-                    AD1.1.2.2.2.1.2. El sistema le requerirá al administrador los siguientes campos para añadir el plato/item
-                        AD1.1.2.2.2.1.2.1. Title
-                        AD1.1.2.2.2.1.2.2. Description (optional)
-                        AD1.1.2.2.2.1.2.3. Price
-                        AD1.1.2.2.2.1.2.4. Spiciness: nivel de picante (0, 1, 2 o 3 guindillas)
+                    AD1.1.2.2.1.1. El plato/item no debe tener el mismo nombre ("name") que otro de la misma sección
+                    AD1.1.2.2.1.2. El sistema le requerirá al administrador los siguientes campos para añadir el plato/item
+                        AD1.1.2.2.1.2.1. Name
+                        AD1.1.2.2.1.2.2. Description (optional)
+                        AD1.1.2.2.1.2.3. Price
+                        AD1.1.2.2.1.2.4. Spiciness: nivel de picante (0, 1, 2 o 3 guindillas)
                 AD1.1.2.2.2. El administrador podrá modificar un plato/item de la sección   
                     AD1.1.2.2.2.1. El sistema permitirá modificar los siguientes campos de un plato/item
                         AD1.1.2.2.2.1.1. Name
@@ -74,11 +76,12 @@ AD1. El sistema permitirá al administrador modificar la web de la carta
                         AD1.1.2.2.2.1.3. Price
                         AD1.1.2.2.2.1.4. Spiciness: nivel de picante (0, 1, 2 o 3 guindillas)
                 AD1.1.2.2.3. El administrador podrá eliminar un plato/item de la sección   
+            AD1.1.2.3. El administrador podrá editar el nombre en japonés de la sección
         AD1.1.3. El sistema permitirá al administrador eliminar una sección
             AD1.1.3.1. El sistema requerirá confirmación al administrador para eliminar la sección
             AD1.1.3.2. El sistema eliminará todos los platos asociados a la sección
-        AD1.2. El sistema permitirá al administrador ordenar las secciones en la carta
-            AD1.2.1. El administrador podŕa arrastrar las secciones para ordenarlas
+        AD1.1.4. El sistema permitirá al administrador ordenar las secciones en la carta
+            AD1.1.4.1. El administrador podrá arrastrar las secciones para ordenarlas
     AD1.2. El sistema requerirá al administrador autenticarse con Cloudflare Access
 
 ## Plan de pruebas
@@ -86,7 +89,7 @@ AD1. El sistema permitirá al administrador modificar la web de la carta
 | ID   | Descripción | Resultado esperado |
 | PIC1 | El cliente accede a la página principal y visualiza una carta vacía | Se muestra el mensaje de carta vacía |
 | PIC2 | El cliente accede a la página principal y visualiza una carta con dos secciones: una con tres platos y otra vacía | Se muestra la sección con tres platos y la sección vacía con el mensaje de sección vacía |
-| PIC3 | El cliente accede a la página principal y accede al enlace de Instagram | La página redirige al perfil de Instagram del restaruante |
+| PIC3 | El cliente accede a la página principal y accede al enlace de Instagram | La página redirige al perfil de Instagram del restaurante |
 | PIA1 | El administrador añade una sección nueva a la carta | La sección se añade correctamente y se visualiza con el mensaje de sección vacía |
 | PIA2 | El administrador intenta añadir una sección con nombre existente | Se muestra un mensaje de error que explica que la sección ya existe |
 | PIA3 | El administrador elimina una sección existente con platos | La sección se borra y todos los platos que contenía también. Ya no se visualizan en la carta ni la sección ni los platos |
@@ -98,9 +101,11 @@ AD1. El sistema permitirá al administrador modificar la web de la carta
 
 ## Diseño de interfaz
 Los botones de editar y borrar secciones y platos serán símbolos de lápiz y papelera, respectivamente.
-La minimización de las secciones es hará pulsando en un icono '-', y la expansión de las secciones con un icono '+' localizado a arriba a la izquierda de la sección, sin estar dentro de un círculo o figura
+Las secciones se mostrarán centradas: el título de la sección y, debajo, su título en japonés (con caracteres japoneses).
+La minimización de las secciones se hará pulsando en un icono '-', y la expansión de las secciones con un icono '+' localizado arriba a la izquierda de la sección, sin estar dentro de un círculo o figura
 Al minimizar o maximizar una sección, habrá una transición suave
 La tipografía para la carta será Shippori Mincho
-Los enalces de WhatsApp e Instagram serán los iconos de las aplicaciones correspondientes.
+Los enlaces de WhatsApp e Instagram serán los iconos de las aplicaciones correspondientes.
 Los precios estarán separados del plato por una línea continua fina tipo _
 El logo del restaurante se desvanecerá hacia arriba al deslizar para bajar por la página, y volverá a aparecer con una transición al deslizar para subir por la página
+Al abrir la carta, aparecerán el header y una imagen en el centro. En la parte de abajo habrá una flecha tipo > (no ->) que apunte hacia abajo y haga una pequeña animación de movimiento, indicando que hay que bajar por la web para llegar a la carta. Encima de la flecha pondrá "Carta"

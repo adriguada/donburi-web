@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Menu } from "../../shared/types";
 import { api, errorMessage } from "../api";
 import { AdminSection } from "../components/admin/AdminSection";
-import { TitleForm } from "../components/admin/TitleForm";
+import { SectionForm } from "../components/admin/SectionForm";
 import { Logo } from "../components/Logo";
 
 const announcements = {
@@ -54,7 +54,7 @@ export function AdminPage() {
     };
   }, []);
 
-  /** AD1.2: reorders sections optimistically, then saves; reverts on failure. */
+  /** AD1.1.4: reorders sections optimistically, then saves; reverts on failure. */
   async function handleDragEnd({ active, over }: DragEndEvent) {
     if (!menu || !over || active.id === over.id) return;
     const from = menu.sections.findIndex((section) => section.id === active.id);
@@ -82,12 +82,12 @@ export function AdminPage() {
       </header>
       <main>
         <div className="card">
-          <TitleForm
+          <SectionForm
             label="Nueva sección"
             submitLabel="Añadir sección"
             testId="new-section-form"
-            onSubmit={async (title) => {
-              await api.createSection({ title });
+            onSubmit={async (input) => {
+              await api.createSection(input);
               await reload();
             }}
           />

@@ -4,6 +4,13 @@ import { toCents } from "./validation";
 interface SectionRow {
   id: number;
   title: string;
+  title_ja: string | null;
+}
+
+const SECTION_COLUMNS = "id, title, title_ja";
+
+function toSection(row: SectionRow, dishes: Dish[] = []): Section {
+  return { id: row.id, title: row.title, titleJa: row.title_ja, dishes };
 }
 
 interface DishRow {
@@ -37,12 +44,12 @@ function isUniqueViolation(error: unknown): boolean {
 
 export async function getMenu(db: D1Database): Promise<Menu> {
   const [sections, dishes] = await db.batch([
-    db.prepare('SELECT id, title FROM sections ORDER BY "order", id'),
+    db.prepare(`SELECT ${SECTION_COLUMNS} FROM sections ORDER BY "order", id`),
     db.prepare(`SELECT ${DISH_COLUMNS} FROM dishes ORDER BY id`),
   ]);
   const bySection = new Map<number, Section>();
   for (const row of sections.results as SectionRow[]) {
-    bySection.set(row.id, { id: row.id, title: row.title, dishes: [] });
+    bySection.set(row.id, toSection(row));
   }
   for (const row of dishes.results as DishRow[]) {
     bySection.get(row.section_id)?.dishes.push(toDish(row));
@@ -51,26 +58,26 @@ export async function getMenu(db: D1Database): Promise<Menu> {
 }
 
 async function getSection(db: D1Database, id: number): Promise<Section | null> {
-  const row = await db.prepare("SELECT id, title FROM sections WHERE id = ?").bind(id).first<SectionRow>();
+  const row = await db.prepare(`SELECT ${SECTION_COLUMNS} FROM sections WHERE id = ?`).bind(id).first<SectionRow>();
   if (!row) return null;
   const dishes = await db
     .prepare(`SELECT ${DISH_COLUMNS} FROM dishes WHERE section_id = ? ORDER BY id`)
     .bind(id)
     .all<DishRow>();
-  return { id: row.id, title: row.title, dishes: dishes.results.map(toDish) };
+  return toSection(row, dishes.results.map(toDish));
 }
 
 export async function createSection(db: D1Database, input: SectionInput): Promise<WriteResult<Section>> {
   try {
     const row = await db
       .prepare(
-        `INSERT INTO sections (title, "order")
-         VALUES (?, (SELECT COALESCE(MAX("order"), 0) + 1 FROM sections))
-         RETURNING id, title`,
+        `INSERT INTO sections (title, title_ja, "order")
+         VALUES (?, ?, (SELECT COALESCE(MAX("order"), 0) + 1 FROM sections))
+         RETURNING ${SECTION_COLUMNS}`,
       )
-      .bind(input.title)
+      .bind(input.title, input.titleJa ?? null)
       .first<SectionRow>();
-    return { ok: true, value: { id: row!.id, title: row!.title, dishes: [] } };
+    return { ok: true, value: toSection(row!) };
   } catch (error) {
     if (isUniqueViolation(error)) return { ok: false, reason: "conflict" };
     throw error;
@@ -83,7 +90,9 @@ export async function updateSection(
   input: SectionInput,
 ): Promise<WriteResult<Section>> {
   try {
-    const result = await db.prepare("UPDATE sections SET title = ? WHERE id = ?").bind(input.title, id).run();
+    const result = await db
+      .prepare("UPDATE sections SET title = ?, title_ja = ? WHERE id = ?")
+      .bind(input.title, input.titleJa ?? null, id).run();
     if (result.meta.changes === 0) return { ok: false, reason: "not_found" };
   } catch (error) {
     if (isUniqueViolation(error)) return { ok: false, reason: "conflict" };
@@ -93,7 +102,7 @@ export async function updateSection(
 }
 
 /**
- * Sets the order of the sections on the menu (AD1.2). `sectionIds` must list
+ * Sets the order of the sections on the menu (AD1.1.4). `sectionIds` must list
  * every existing section exactly once; otherwise nothing changes and the
  * result is a conflict (the admin is looking at a stale menu).
  */

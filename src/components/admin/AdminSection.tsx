@@ -8,7 +8,7 @@ import { GripIcon, PencilIcon, TrashIcon } from "../icons";
 import { SpicyIcon } from "../SpicyIcon";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DishForm } from "./DishForm";
-import { TitleForm } from "./TitleForm";
+import { SectionForm } from "./SectionForm";
 
 interface Props {
   section: Section;
@@ -44,14 +44,14 @@ export function AdminSection({ section, onChanged }: Props) {
       aria-label={section.title}
     >
       {editingTitle ? (
-        <TitleForm
+        <SectionForm
           label="Nombre de la sección"
           submitLabel="Guardar"
-          initialTitle={section.title}
+          initial={{ title: section.title, titleJa: section.titleJa }}
           testId="edit-section-form"
           onCancel={() => setEditingTitle(false)}
-          onSubmit={async (title) => {
-            await api.updateSection(section.id, { title });
+          onSubmit={async (input) => {
+            await api.updateSection(section.id, input);
             setEditingTitle(false);
             await onChanged();
           }}
@@ -70,7 +70,14 @@ export function AdminSection({ section, onChanged }: Props) {
           >
             <GripIcon />
           </button>
-          <h2 data-testid="admin-section-title">{section.title}</h2>
+          <div className="admin-section-titles">
+            <h2 data-testid="admin-section-title">{section.title}</h2>
+            {section.titleJa && (
+              <p className="section-title-ja" lang="ja" data-testid="admin-section-title-ja">
+                {section.titleJa}
+              </p>
+            )}
+          </div>
           <div className="actions">
             <button
               type="button"

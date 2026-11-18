@@ -23,7 +23,18 @@ export function MenuSection({ section }: { section: Section }) {
           <span className="toggle-icon" data-testid="section-toggle-icon" data-state={expanded ? "expanded" : "collapsed"}>
             {expanded ? <MinusIcon /> : <PlusIcon />}
           </span>
-          <span>{section.title}</span>
+          <span className="section-titles">
+            <span className="section-title" data-testid="section-title">
+              {section.title}
+            </span>
+            {section.titleJa && (
+              <span className="section-title-ja" lang="ja" data-testid="section-title-ja">
+                {section.titleJa}
+              </span>
+            )}
+          </span>
+          {/* Empty column matching the icon so the titles are centred on the screen. */}
+          <span className="toggle-spacer" aria-hidden="true" />
         </button>
       </h2>
       {/* Collapsing animates the row height from 1fr to 0fr (smooth transition);

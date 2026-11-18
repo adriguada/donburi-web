@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "npm run build && vite preview",
     "deploy": "npm run build && wrangler deploy",
-    "cf-typegen": "wrangler types --strict-vars=false",
+    "cf-typegen": "wrangler types --strict-vars=false --env-file=/dev/null",
     "test": "vitest run --project worker --project client",
     "test:watch": "vitest --project worker --project client",
     "test:worker": "vitest run --project worker",

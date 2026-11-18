@@ -21,6 +21,17 @@ function requiredText(value: unknown, field: string, max: number): Parsed<string
   return { ok: true, value: text };
 }
 
+/** Optional text: undefined/null/blank → null; otherwise trimmed and length-checked. */
+function optionalText(value: unknown, field: string, max: number): Parsed<string | null> {
+  if (value === undefined || value === null) return { ok: true, value: null };
+  if (typeof value !== "string") return { ok: false, message: `El campo "${field}" debe ser texto.` };
+  const text = value.trim();
+  if (text.length > max) {
+    return { ok: false, message: `El campo "${field}" no puede superar ${max} caracteres.` };
+  }
+  return { ok: true, value: text || null };
+}
+
 export function parseId(raw: string): number | null {
   if (!/^\d+$/.test(raw)) return null;
   const id = Number(raw);
@@ -31,7 +42,9 @@ export function parseSectionInput(body: unknown): Parsed<SectionInput> {
   if (!isRecord(body)) return { ok: false, message: "El cuerpo de la petición debe ser un objeto JSON." };
   const title = requiredText(body.title, "title", MAX_TITLE_LENGTH);
   if (!title.ok) return title;
-  return { ok: true, value: { title: title.value } };
+  const titleJa = optionalText(body.titleJa, "titleJa", MAX_TITLE_LENGTH);
+  if (!titleJa.ok) return titleJa;
+  return { ok: true, value: { title: title.value, titleJa: titleJa.value } };
 }
 
 export function parseSectionOrder(body: unknown): Parsed<SectionOrderInput> {

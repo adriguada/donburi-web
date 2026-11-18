@@ -11,6 +11,7 @@ const ramenMenu: Menu = {
     {
       id: 1,
       title: "Ramen",
+      titleJa: "ラーメン",
       dishes: [
         { id: 10, sectionId: 1, name: "Shoyu", description: "Clásico", price: 12, spiciness: 0 },
         { id: 11, sectionId: 1, name: "Miso", description: null, price: 12.5, spiciness: 1 },
@@ -35,18 +36,24 @@ describe("AdminPage", () => {
   it("adds a new section (AD1.1.1)", async () => {
     const user = userEvent.setup();
     const fetchMock = mockFetch({
-      "GET /api/menu": menuSequence({ sections: [] }, { sections: [{ id: 1, title: "Entrantes", dishes: [] }] }),
-      "POST /api/section": () => ({ status: 201, body: { id: 1, title: "Entrantes", dishes: [] } }),
+      "GET /api/menu": menuSequence(
+        { sections: [] },
+        { sections: [{ id: 1, title: "Entrantes", titleJa: "前菜", dishes: [] }] },
+      ),
+      "POST /api/section": () => ({ status: 201, body: { id: 1, title: "Entrantes", titleJa: "前菜", dishes: [] } }),
     });
     render(<AdminPage />);
     await screen.findByText("La carta no tiene secciones todavía.");
 
     await user.type(screen.getByLabelText("Nueva sección"), "Entrantes");
+    await user.type(screen.getByLabelText("Nombre en japonés (opcional)"), "前菜");
     await user.click(screen.getByRole("button", { name: "Añadir sección" }));
 
-    expect(await screen.findByRole("region", { name: "Entrantes" })).toBeInTheDocument();
-    expect(callsTo(fetchMock, "POST", "/api/section")).toEqual([{ title: "Entrantes" }]);
+    const section = await screen.findByRole("region", { name: "Entrantes" });
+    expect(within(section).getByTestId("admin-section-title-ja")).toHaveTextContent("前菜");
+    expect(callsTo(fetchMock, "POST", "/api/section")).toEqual([{ title: "Entrantes", titleJa: "前菜" }]);
     expect(screen.getByLabelText("Nueva sección")).toHaveValue("");
+    expect(screen.getByLabelText("Nombre en japonés (opcional)")).toHaveValue("");
   });
 
   it("requires a name for a new section without calling the API (AD1.1.1.1)", async () => {
@@ -88,7 +95,21 @@ describe("AdminPage", () => {
     await user.click(screen.getByRole("button", { name: "Guardar" }));
 
     expect(await screen.findByRole("heading", { name: "Ramens" })).toBeInTheDocument();
-    expect(callsTo(fetchMock, "PUT", "/api/section/1")).toEqual([{ title: "Ramens" }]);
+    // The Japanese title is pre-filled and kept.
+    expect(callsTo(fetchMock, "PUT", "/api/section/1")).toEqual([{ title: "Ramens", titleJa: "ラーメン" }]);
+  });
+
+  it("sends no Japanese title when the field is left blank", async () => {
+    const user = userEvent.setup();
+    const fetchMock = mockFetch({
+      "GET /api/menu": menuSequence({ sections: [] }),
+      "POST /api/section": () => ({ status: 201, body: { id: 1, title: "Bebidas", titleJa: null, dishes: [] } }),
+    });
+    render(<AdminPage />);
+    await user.type(await screen.findByLabelText("Nueva sección"), "Bebidas");
+    await user.type(screen.getByLabelText("Nombre en japonés (opcional)"), "   ");
+    await user.click(screen.getByRole("button", { name: "Añadir sección" }));
+    await waitFor(() => expect(callsTo(fetchMock, "POST", "/api/section")).toEqual([{ title: "Bebidas", titleJa: null }]));
   });
 
   it("asks for confirmation before deleting a section (AD1.1.3.1)", async () => {

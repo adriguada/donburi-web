@@ -51,8 +51,8 @@ export interface SeedDish {
   spiciness?: number;
 }
 
-export async function seedSection(title: string, dishes: SeedDish[] = []): Promise<number> {
-  const section = await apiCall<{ id: number }>("POST", "/api/section", { title });
+export async function seedSection(title: string, dishes: SeedDish[] = [], titleJa?: string): Promise<number> {
+  const section = await apiCall<{ id: number }>("POST", "/api/section", { title, titleJa });
   for (const dish of dishes) {
     await apiCall("POST", "/api/dish", {
       sectionId: section.id,
@@ -110,7 +110,7 @@ async function peppersOf(dish: WebElement): Promise<number> {
 export async function readMenu(driver: WebDriver): Promise<RenderedSection[]> {
   const result: RenderedSection[] = [];
   for (const section of await driver.findElements(By.css("[data-testid=menu-section]"))) {
-    const title = await section.findElement(By.css(".menu-section-toggle")).getText();
+    const title = await section.findElement(By.css("[data-testid=section-title]")).getText();
     const dishes = [];
     for (const dish of await section.findElements(By.css("[data-testid=dish]"))) {
       dishes.push({

@@ -12,7 +12,9 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 - Muestra el logo del restaurante.
 - Fondo claro con patrón *seigaiha* y tipografía Shippori Mincho en tinta oscura.
 - El logo cuelga de la parte superior dentro de un marco terracota; se desvanece hacia arriba al bajar por la carta y reaparece al subir.
+- Al abrir la carta se ven el logo y la ilustración del gato comiendo ramen; abajo, «Carta» con una flecha animada invita a bajar (o lleva hasta la carta al pulsarla).
 - Los precios se separan del plato con una línea fina continua.
+- Cada sección muestra su título centrado y, debajo, su título en japonés (p. ej. «Ramen» / «ラーメン»).
 - Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar (icono «−») y desplegar (icono «+») desde la esquina superior izquierda de cada sección, con una transición suave.
 - Cada plato muestra nombre, descripción y precio; los platos picantes muestran de una a tres guindillas según su nivel de picante.
 - Las secciones vacías muestran el mensaje "Work In Progress..."; si la carta entera está vacía, el mensaje aparece en el centro de la pantalla.
@@ -21,7 +23,7 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 
 ### Panel de administración (`/admin/`)
 - Acceso protegido con [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/).
-- Crear, renombrar y eliminar **secciones**.
+- Crear, renombrar y eliminar **secciones**, con un nombre en japonés opcional.
   - El nombre de una sección no puede repetirse en la carta.
   - Eliminar una sección pide confirmación y elimina también todos sus platos.
 - Ordenar las secciones de la carta arrastrándolas por su asa (también con teclado y en pantallas táctiles).
@@ -73,6 +75,7 @@ La especificación completa (requisitos funcionales y plan de pruebas) está en 
 | ----- | ------------------------------------ |
 | id    | Clave primaria                       |
 | title | Nombre de la sección (único)         |
+| title_ja | Nombre en japonés (opcional)      |
 
 **Dish**: plato, bebida o postre (Tonkotsu Ramen, HighBall, Tiramisú…)
 
@@ -122,7 +125,7 @@ npm run cf-typegen   # Regenerar tipos tras cambiar los bindings en wrangler.jso
 
 ### Datos del restaurante
 
-La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram están en [`src/config.ts`](src/config.ts). El logo es [`src/assets/donburi-logo.svg`](src/assets/donburi-logo.svg) (en la carta se usa `donburi-logo-light.svg`, con el kanji en el color claro, dentro del marco [`src/assets/logo-marco.svg`](src/assets/logo-marco.svg)), el fondo del pie de página [`src/assets/header-fondo.svg`](src/assets/header-fondo.svg) y el fondo de la página [`src/assets/seigaiha.svg`](src/assets/seigaiha.svg). La tipografía Shippori Mincho se sirve desde la propia web (paquete `@fontsource/shippori-mincho`, solo el subconjunto latino).
+La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram están en [`src/config.ts`](src/config.ts). El logo es [`src/assets/donburi-logo.svg`](src/assets/donburi-logo.svg) (en la carta se usa `donburi-logo-light.svg`, con el kanji en el color claro, dentro del marco [`src/assets/logo-marco.svg`](src/assets/logo-marco.svg)), la ilustración de bienvenida [`src/assets/gato-donburi.svg`](src/assets/gato-donburi.svg), el fondo del pie de página [`src/assets/header-fondo.svg`](src/assets/header-fondo.svg) y el fondo de la página [`src/assets/seigaiha.svg`](src/assets/seigaiha.svg). La tipografía Shippori Mincho se sirve desde la propia web (paquete `@fontsource/shippori-mincho`); los caracteres japoneses se descargan por fragmentos, solo los que aparecen en la carta.
 
 ## Tests
 

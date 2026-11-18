@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Menu } from "../../shared/types";
 import { api, errorMessage } from "../api";
 import { Footer } from "../components/Footer";
+import { Hero, MENU_ANCHOR } from "../components/Hero";
 import { Logo } from "../components/Logo";
 import { MenuSection, WIP_MESSAGE } from "../components/MenuSection";
 import { useShowOnScrollUp } from "../hooks/useShowOnScrollUp";
@@ -34,8 +35,9 @@ export function MenuPage() {
           <Logo variant="light" />
         </div>
       </header>
+      <Hero />
       <div className="page menu-body">
-        <main className="menu-main">
+        <main className="menu-main" id={MENU_ANCHOR}>
           {state.status === "loading" && <p className="status">Cargando la carta…</p>}
           {state.status === "error" && (
             <p className="status error" role="alert">

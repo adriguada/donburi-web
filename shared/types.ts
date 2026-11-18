@@ -16,6 +16,8 @@ export const MAX_SPICINESS = 3;
 export interface Section {
   id: number;
   title: string;
+  /** Japanese title shown under the title on the menu (optional). */
+  titleJa: string | null;
   dishes: Dish[];
 }
 
@@ -25,6 +27,8 @@ export interface Menu {
 
 export interface SectionInput {
   title: string;
+  /** Optional; omitted, null or blank clears it. */
+  titleJa?: string | null;
 }
 
 /** Body of PUT /api/section/order: every section id, in the new order. */
