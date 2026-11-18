@@ -28,9 +28,9 @@
 	],
 	"vars": {
 		// Cloudflare Access team domain, e.g. "myteam.cloudflareaccess.com".
-		"ACCESS_TEAM_DOMAIN": "",
+		"ACCESS_TEAM_DOMAIN": "donburi-ramen.cloudflareaccess.com",
 		// Application Audience (AUD) tag of the Access application protecting /admin and the write API.
-		"ACCESS_AUD": ""
+		"ACCESS_AUD": "9d7d4556592826f82ab86dab1dcc42ce2e2e8941a97b00060be487ed5f0399cd"
 	},
 	"observability": {
 		"enabled": true
