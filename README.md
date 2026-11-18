@@ -1,176 +1,430 @@
-# Donburi 🍜
+# Donburi Ramen Bar — Digital Menu 🍜
 
-Web del restaurante de ramen **Donburi Ramen Bar**: carta digital accesible mediante código QR y panel de administración para gestionar su contenido.
+A mobile-first digital menu for **Donburi Ramen Bar**, a ramen restaurant in Gijón (Spain). Customers scan a QR code on the table and get the menu on their phone; the owner edits sections and dishes from a password-protected admin panel, and changes appear instantly.
 
-La especificación completa (requisitos funcionales y plan de pruebas) está en [requirements.md](requirements.md).
+The whole app — website, API and database — runs serverless on the **Cloudflare Developer Platform**.
 
-## Funcionalidades
+- **Live menu:** https://donburi-web.donburi-ramen.workers.dev
+- **Specification:** [`requirements.md`](requirements.md) (in Spanish) is the source of truth for features and the test plan. Requirement IDs such as `CL1.2.4` or `PIA5` used below and in test names refer to it.
+- **Language:** the user interface and API messages are in Spanish; code and this README are in English.
 
-### Carta pública (`/`)
-- Accesible escaneando el código QR de las mesas.
-- Diseño adaptado a móviles, tablets y PCs.
-- Muestra el logo del restaurante.
-- Fondo claro con patrón *seigaiha* y tipografía Shippori Mincho en tinta oscura.
-- El logo cuelga de la parte superior dentro de un marco terracota; se desvanece hacia arriba al bajar por la carta y reaparece al subir, en un tamaño más pequeño y sin el texto «DONBURI RAMEN» (arriba del todo vuelve al tamaño completo).
-- Al abrir la carta se ven el logo y la ilustración del gato comiendo ramen; abajo, «Carta» con una flecha animada invita a bajar (o lleva hasta la carta al pulsarla).
-- Los precios se separan del plato con una línea fina continua.
-- Cada sección muestra su título centrado y, debajo, su título en japonés (p. ej. «Ramen» / «ラーメン»).
-- Platos organizados por secciones (entrantes, salteados, ramen, postres, bebidas…) que el cliente puede plegar (icono «−») y desplegar (icono «+») desde la esquina superior izquierda de cada sección, con una transición suave.
-- Cada plato muestra nombre, descripción y precio; los platos picantes muestran de una a tres guindillas según su nivel de picante.
-- Las secciones vacías muestran el mensaje "Work In Progress..."; si la carta entera está vacía, el mensaje aparece en el centro de la pantalla.
-- *(Pendiente)* Selector de idioma en la parte superior: español, inglés, alemán, francés y portugués.
-- Al final de la carta, sobre una banda terracota con bandas decorativas: dirección, teléfono y los iconos de WhatsApp e Instagram enlazando a las cuentas del restaurante.
+---
 
-### Panel de administración (`/admin/`)
-- Acceso protegido con [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/).
-- Crear, renombrar y eliminar **secciones**, con un nombre en japonés opcional.
-  - El nombre de una sección no puede repetirse en la carta.
-  - Eliminar una sección pide confirmación y elimina también todos sus platos.
-- Ordenar las secciones de la carta arrastrándolas por su asa (también con teclado y en pantallas táctiles).
-- Los botones de editar y eliminar son iconos de lápiz y papelera.
-- Crear, editar y eliminar **platos** dentro de cada sección (nombre, descripción opcional, precio y nivel de picante de 0 a 3 guindillas).
-  - El nombre de un plato no puede repetirse dentro de la misma sección; si se intenta, se muestra un error y la carta no cambia.
+## Contents
 
-## Stack tecnológico
+1. [Features](#features)
+2. [Technology stack](#technology-stack)
+3. [Architecture](#architecture)
+4. [Code design](#code-design)
+5. [Serverless infrastructure](#serverless-infrastructure)
+6. [Test suite](#test-suite)
+7. [Local development](#local-development)
+8. [Deploying to Cloudflare](#deploying-to-cloudflare)
+9. [Project structure](#project-structure)
+10. [Status and roadmap](#status-and-roadmap)
 
-| Capa          | Tecnología                                                                                         |
-| ------------- | -------------------------------------------------------------------------------------------------- |
-| Frontend      | [React](https://react.dev/) + [Vite](https://vite.dev/)                                             |
-| Hosting       | [Cloudflare Workers](https://developers.cloudflare.com/workers/) (static assets)                    |
-| API / backend | [Cloudflare Workers](https://developers.cloudflare.com/workers/)                                    |
-| Base de datos | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite)                                     |
-| Autenticación | [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/)              |
+---
 
-## Arquitectura
+## Features
 
+### Public menu (`/`)
+- Opening screen with the restaurant logo and an illustration; a bouncing **"Carta"** arrow invites the customer to scroll down (tapping it scrolls smoothly to the menu).
+- Sections (starters, ramen, stir-fries, desserts, drinks…) with a centred title and its **Japanese title** underneath (e.g. *Ramen* / ラーメン).
+- Each section can be collapsed (−) and expanded (+) with a smooth animation.
+- Each dish shows name, optional description and price, joined by a thin line; spicy dishes show **one to three chilli peppers** 🌶️.
+- Empty sections — and an empty menu — show *"Work In Progress..."*.
+- The logo hides while scrolling down and comes back, smaller and without its lettering, when scrolling up.
+- Footer with address, phone number, and WhatsApp and Instagram icons.
+- Warm, light design: parchment *seigaiha* (wave) background, espresso-coloured text, **Shippori Mincho** typeface, terracotta frame and footer.
+
+### Admin panel (`/admin/`)
+- Protected by **Cloudflare Access**: only the restaurant's own account can sign in.
+- Create, rename and delete sections (with an optional Japanese title); deleting asks for confirmation and removes the section's dishes.
+- Create, edit and delete dishes: name, optional description, price and spiciness level (0–3).
+- Reorder sections by **drag and drop** (mouse, touch or keyboard).
+- Section titles are unique across the menu and dish names unique within a section (case-insensitive); duplicates are rejected with a clear error and nothing changes.
+
+---
+
+## Technology stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | [React 19](https://react.dev/) + TypeScript, built with [Vite](https://vite.dev/) |
+| Drag & drop | [dnd-kit](https://dndkit.com/) (`@dnd-kit/core`, `sortable`, `modifiers`) |
+| Typography | [Shippori Mincho](https://fonts.google.com/specimen/Shippori+Mincho), self-hosted via `@fontsource` |
+| Backend / API | [Cloudflare Workers](https://developers.cloudflare.com/workers/) (TypeScript, no framework) |
+| Static hosting | [Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/) |
+| Database | [Cloudflare D1](https://developers.cloudflare.com/d1/) (serverless SQLite) |
+| Authentication | [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) (Zero Trust) + JWT verification with [`jose`](https://github.com/panva/jose) |
+| Tooling | [Wrangler](https://developers.cloudflare.com/workers/wrangler/), [`@cloudflare/vite-plugin`](https://developers.cloudflare.com/workers/vite-plugin/), [oxlint](https://oxc.rs/) |
+| Tests | [Vitest](https://vitest.dev/), [`@cloudflare/vitest-plugin`](https://developers.cloudflare.com/workers/testing/vitest-integration/), [Testing Library](https://testing-library.com/), [Selenium WebDriver](https://www.selenium.dev/) + headless Chromium |
+
+---
+
+## Architecture
+
+The app is a **single Cloudflare Worker** that serves both the React single-page app (as static assets) and a small JSON API backed by a D1 database. There is no separate frontend host and no server to manage.
+
+```mermaid
+flowchart LR
+    Customer["📱 Customer<br/>(QR code)"]
+    Admin["🧑‍🍳 Admin<br/>(restaurant account)"]
+
+    subgraph Cloudflare["Cloudflare edge"]
+        Access["Cloudflare Access<br/>(protects /admin,<br/>/api/section, /api/dish)"]
+        subgraph Worker["Worker: donburi-web"]
+            Router["Router<br/>worker/index.ts"]
+            Auth["JWT check<br/>worker/auth.ts"]
+            Assets["Static assets<br/>(React SPA)"]
+        end
+        D1[("D1 database<br/>donburi-db")]
+    end
+
+    Customer -- "GET / and /api/menu" --> Router
+    Admin -- "/admin, write API" --> Access
+    Access -- "signed JWT" --> Router
+    Router --> Auth
+    Router --> Assets
+    Router -- "SQL" --> D1
 ```
-┌──────────────┐      ┌──────────────────────────────┐      ┌──────────────┐
-│   Cliente    │      │  Cloudflare Worker           │      │              │
-│ (QR / Admin) │ ───▶ │  · static assets (React SPA) │      │ Cloudflare   │
-│              │      │  · /api/* (API REST)         │ ───▶ │ D1           │
-└──────────────┘      └──────────────────────────────┘      └──────────────┘
+
+**How a request flows:**
+
+1. **Public pages and assets** (`/`, scripts, styles, images, fonts) are served directly from Workers Static Assets. Unknown paths fall back to `index.html` (single-page-app routing).
+2. **`/api/*` and `/admin*`** always run through the Worker first (`run_worker_first` in `wrangler.jsonc`).
+3. **`GET /api/menu`** is public: the Worker reads all sections and dishes from D1 and returns them as JSON (`Cache-Control: no-store`, so edits show instantly).
+4. **Admin routes** are protected twice:
+   - **Cloudflare Access** sits in front of `/admin`, `/api/section` and `/api/dish`. Unauthenticated visitors are redirected to the Cloudflare login, where the owner receives a one-time code by email.
+   - **The Worker itself** then verifies the Access JWT (signature, issuer and audience) and checks that the token's email is in the `ADMIN_EMAILS` secret. This second barrier keeps the panel closed even if the Access policy were loosened by mistake, and also covers preview URLs that bypass the Access application.
+   - If any of the authentication settings is missing, admin routes **fail closed** (HTTP 500) rather than open.
+
+### REST API
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/menu` | public | Full menu: sections in order, each with its dishes |
+| `POST` | `/api/section` | admin | Create a section `{ title, titleJa? }` |
+| `PUT` | `/api/section/:id` | admin | Rename a section `{ title, titleJa? }` |
+| `DELETE` | `/api/section/:id` | admin | Delete a section and all its dishes |
+| `PUT` | `/api/section/order` | admin | Reorder sections `{ sectionIds: [...] }` (must list every section) |
+| `POST` | `/api/dish` | admin | Create a dish `{ sectionId, name, description?, price, spiciness? }` |
+| `PUT` | `/api/dish/:id` | admin | Update a dish `{ name, description?, price, spiciness? }` |
+| `DELETE` | `/api/dish/:id` | admin | Delete a dish |
+
+Errors are returned as `{ "error": <code>, "message": <Spanish text> }`, and the admin panel shows the message as-is:
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Invalid body (missing name, negative price, spiciness outside 0–3…) |
+| 401 | `UNAUTHORIZED` | Missing or invalid Access token |
+| 403 | `FORBIDDEN` | Valid token, but the email is not an administrator |
+| 404 | `NOT_FOUND` | Unknown section, dish or route |
+| 409 | `SECTION_EXISTS` / `DISH_EXISTS` | Duplicate section title / dish name in the section |
+| 409 | `ORDER_CONFLICT` | Reorder list doesn't match the current sections (stale page) |
+| 500 | `AUTH_NOT_CONFIGURED` | Access settings or `ADMIN_EMAILS` missing (fail closed) |
+
+---
+
+## Code design
+
+The code is written in a functional style: plain TypeScript **types and modules** on the backend and **function components and hooks** on the frontend, with no class hierarchy. The domain model and the module structure are shown below.
+
+### Domain model
+
+The API types live in [`shared/types.ts`](shared/types.ts) and are imported by both the Worker and the React app, so both sides always agree on the data shape.
+
+```mermaid
+classDiagram
+    direction LR
+    class Menu {
+        sections: Section[]
+    }
+    class Section {
+        id: number
+        title: string
+        titleJa: string | null
+        dishes: Dish[]
+    }
+    class Dish {
+        id: number
+        sectionId: number
+        name: string
+        description: string | null
+        price: number  «euros»
+        spiciness: number  «0–3»
+    }
+    Menu "1" *-- "0..*" Section : ordered
+    Section "1" *-- "0..*" Dish : cascade delete
 ```
 
-- Un único **Worker** sirve la aplicación React como static assets (carta pública y panel de admin) y expone la API REST en `/api/*`.
-- **D1** almacena secciones y platos. Solo se guarda texto y números; no se almacenan imágenes.
+### Database schema (D1)
 
-### API
+Created by the SQL files in [`migrations/`](migrations), applied in order:
 
-| Método   | Ruta               | Descripción                    |
-| -------- | ------------------ | ------------------------------ |
-| `GET`    | `/api/menu`        | Obtener la carta en JSON       |
-| `POST`   | `/api/section`     | Añadir una sección             |
-| `PUT`    | `/api/section/:id` | Modificar una sección          |
-| `DELETE` | `/api/section/:id` | Eliminar una sección y sus platos |
-| `PUT`    | `/api/section/order` | Ordenar las secciones (`{ "sectionIds": [3, 1, 2] }`, todas las secciones en el nuevo orden) |
-| `POST`   | `/api/dish`        | Añadir un plato                |
-| `PUT`    | `/api/dish/:id`    | Modificar un plato             |
-| `DELETE` | `/api/dish/:id`    | Eliminar un plato              |
+| Table | Column | Notes |
+|---|---|---|
+| `sections` | `id` | `INTEGER PRIMARY KEY` |
+| | `title` | `TEXT UNIQUE COLLATE NOCASE` |
+| | `title_ja` | `TEXT`, optional (migration 0004) |
+| | `"order"` | `INT`, position on the menu (migration 0002; `order` is a reserved word, so it is always quoted) |
+| `dishes` | `id` | `INTEGER PRIMARY KEY` |
+| | `section_id` | `REFERENCES sections(id) ON DELETE CASCADE` |
+| | `name` | `TEXT COLLATE NOCASE`, `UNIQUE (section_id, name)` |
+| | `description` | `TEXT`, optional |
+| | `price_cents` | `INTEGER ≥ 0` (the API exposes euros) |
+| | `spiciness` | `INTEGER 0–3` (migration 0003, replaced the old `is_spicy` flag) |
 
-## Modelo de datos
+Uniqueness is enforced by the database itself, so two simultaneous requests can never create duplicates; the Worker maps the constraint error to a `409`.
 
-**Section**: sección de la carta (Entrantes, Principal, Postres, Bebidas…)
+### Backend modules (`worker/`)
 
-| Campo | Descripción                          |
-| ----- | ------------------------------------ |
-| id    | Clave primaria                       |
-| title | Nombre de la sección (único)         |
-| title_ja | Nombre en japonés (opcional)      |
+```mermaid
+flowchart LR
+    index["index.ts<br/>router + HTTP mapping"] --> validation["validation.ts<br/>parse & validate bodies"]
+    index --> auth["auth.ts<br/>Access JWT + ADMIN_EMAILS"]
+    index --> db["db.ts<br/>D1 queries"]
+    validation --> types["shared/types.ts"]
+    db --> types
+```
 
-**Dish**: plato, bebida o postre (Tonkotsu Ramen, HighBall, Tiramisú…)
+| Module | Responsibility |
+|---|---|
+| [`index.ts`](worker/index.ts) | Entry point (`fetch` handler). Routes `/api/*` and `/admin*`, calls auth for protected routes, maps results to HTTP status codes and Spanish error messages, and hands everything else to the static assets. |
+| [`auth.ts`](worker/auth.ts) | Reads the Access token (`Cf-Access-Jwt-Assertion` header or `CF_Authorization` cookie), verifies it against the team's public keys with `jose`, and checks the email against `ADMIN_EMAILS`. Returns `ok` or a reason (`missing_token`, `invalid_token`, `forbidden_email`, `not_configured`). |
+| [`validation.ts`](worker/validation.ts) | Turns untrusted JSON into typed inputs (`SectionInput`, `DishInput`, `SectionOrderInput`), or returns a validation message. |
+| [`db.ts`](worker/db.ts) | All SQL. Maps rows to domain types (cents ↔ euros, `title_ja` ↔ `titleJa`), runs multi-statement changes (delete a section with its dishes, reorder) as atomic batches, and reports `not_found` / `conflict`. |
 
-| Campo       | Descripción                                         |
-| ----------- | --------------------------------------------------- |
-| id          | Clave primaria                                      |
-| section_id  | Referencia a `Section.id`                           |
-| name        | Nombre del plato (único dentro de su sección)       |
-| description | Descripción (opcional)                              |
-| price       | Precio                                              |
-| spiciness   | Nivel de picante: número de guindillas, de 0 a 3    |
+### Frontend modules (`src/`)
 
-## Desarrollo local
+```mermaid
+flowchart TD
+    App["App.tsx<br/>picks page by URL"] --> MenuPage
+    App --> AdminPage
+    MenuPage --> Hero
+    MenuPage --> MenuSection
+    MenuPage --> Footer
+    MenuPage --> Logo
+    MenuPage -.-> useShowOnScrollUp["hooks/useShowOnScrollUp"]
+    MenuSection --> SpicyIcon
+    AdminPage --> AdminSection
+    AdminPage --> SectionForm
+    AdminSection --> DishForm
+    AdminSection --> SectionForm
+    AdminSection --> ConfirmDialog
+    MenuPage -.-> api["api.ts"]
+    AdminPage -.-> api
+    AdminSection -.-> api
+```
 
-### Requisitos
-- [Node.js](https://nodejs.org/) LTS
-- Chromium/Chrome y chromedriver, solo para las pruebas de integración con Selenium
+| Area | Files | Notes |
+|---|---|---|
+| Routing | [`App.tsx`](src/App.tsx), [`routes.ts`](src/routes.ts) | No router library: `/admin…` renders the admin panel, anything else the menu. |
+| Public menu | [`pages/MenuPage.tsx`](src/pages/MenuPage.tsx), [`components/`](src/components) | `Hero` (opening screen), `MenuSection` (collapsible section), `SpicyIcon`, `Footer`, `Logo` (full or compact variant). |
+| Admin panel | [`pages/AdminPage.tsx`](src/pages/AdminPage.tsx), [`components/admin/`](src/components/admin) | `AdminSection` (one draggable section with its dishes), `SectionForm`, `DishForm`, `ConfirmDialog`. Reloads the menu after every change; reordering is optimistic and rolls back on error. |
+| Data access | [`api.ts`](src/api.ts) | Typed `fetch` wrapper for every endpoint; turns error responses into `ApiRequestError` with the server's message. |
+| Behaviour | [`hooks/useShowOnScrollUp.ts`](src/hooks/useShowOnScrollUp.ts) | Reports scroll direction and whether the page is at the top, to hide, show or shrink the logo header. |
+| Configuration | [`config.ts`](src/config.ts), [`format.ts`](src/format.ts) | Restaurant address, phone and Instagram; price (`es-ES`, EUR) and spiciness label formatting. |
+| Styling | [`index.css`](src/index.css), [`App.css`](src/App.css), [`assets/`](src/assets) | Design tokens (colours, font), layout, phone breakpoint (`max-width: 599px`) and the SVG artwork. |
 
-[Wrangler](https://developers.cloudflare.com/workers/wrangler/) se instala como dependencia del proyecto. No hace falta una cuenta de Cloudflare para desarrollar en local.
+---
 
-### Puesta en marcha
+## Serverless infrastructure
+
+Everything runs on Cloudflare's network; there are no servers, containers or VMs to maintain. All of it fits within Cloudflare's free tiers for a restaurant menu.
+
+| Resource | Name | Purpose | Defined in |
+|---|---|---|---|
+| Worker | `donburi-web` | Runs the API and serves the SPA | `wrangler.jsonc` (`main: worker/index.ts`) |
+| Static assets | binding `ASSETS` | The Vite build (HTML, JS, CSS, fonts, SVGs) | `wrangler.jsonc` `assets` |
+| D1 database | `donburi-db`, binding `DB` | Sections and dishes | `wrangler.jsonc` `d1_databases`, schema in `migrations/` |
+| Variables | `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | Identify the Access team and application (not secret) | `wrangler.jsonc` `vars` |
+| Secret | `ADMIN_EMAILS` | Comma-separated list of administrator emails | `wrangler secret put` (never in the repo) |
+| Access application | self-hosted, on the Worker's hostname | Login in front of `admin`, `api/section`, `api/dish` | Cloudflare Zero Trust dashboard |
+| Access policy | Allow → Emails | Only the restaurant's account may sign in | Cloudflare Zero Trust dashboard |
+
+**Design choices:**
+- **One Worker, one origin.** The SPA and the API share the same origin, so there is no CORS to configure, and the Access session cookie automatically covers the API calls made by the admin panel.
+- **The Worker runs first only where it must.** Static files are served straight from the edge cache; only `/api/*` and `/admin*` execute Worker code.
+- **D1 as the single source of truth**, with no images stored: only text and numbers, as required by the specification.
+- **Defence in depth.** Cloudflare Access is the gatekeeper; the Worker re-verifies the token and the email and fails closed. The local-only `DEV_AUTH_BYPASS` flag lives in `.dev.vars`, which is never deployed or committed.
+- **Configuration as code.** `wrangler.jsonc` is the source of truth for bindings: every deploy replaces the Worker's bindings with what the file says, so change bindings there rather than in the dashboard.
+
+---
+
+## Test suite
+
+All tests run with **Vitest**, split into three projects (see [`vitest.config.ts`](vitest.config.ts)). Test names reference the requirement IDs in `requirements.md`.
+
+| Suite | Count | Runs in | What it covers |
+|---|---|---|---|
+| **worker** — [`test/worker/`](test/worker) | 72 | The real Workers runtime (workerd) via `@cloudflare/vitest-plugin`, with a local D1 | Every API endpoint: validation, uniqueness, cascade delete, reordering, Japanese titles, spiciness, error codes. Authentication: JWT signature/issuer/audience/expiry with locally generated keys, the `ADMIN_EMAILS` second barrier, and fail-closed behaviour. |
+| **client** — [`test/client/`](test/client) | 29 | jsdom with React Testing Library; `fetch` is stubbed | Menu rendering (empty states, peppers, collapse, Japanese titles, footer links, opening screen, logo hide/compact on scroll) and admin flows (create/rename/delete sections with confirmation, add/edit/delete dishes, validation and server errors). |
+| **e2e** — [`test/e2e/`](test/e2e) | 15 | Selenium WebDriver driving headless Chromium against a real dev server | The integration test plan from `requirements.md` — **PIC1–PIC3** (public menu) and **PIA1–PIA8** (admin) — plus Japanese titles (CL1.2.6), drag-and-drop reordering with a real pointer (AD1.1.4.1), the logo scroll behaviour and the opening screen. |
+
+The **worker** and **client** suites clean the database or stub the network before each test. The **e2e** suite starts its own dev server on port 5317 with a separate local database (`.wrangler/e2e-state`), applies the migrations, and seeds and resets data through the API, so it never touches your development data.
 
 ```bash
-# Instalar dependencias
+npm test                 # worker + client suites (~5 s)
+npm run test:e2e         # Selenium suite (~30 s); needs Chromium + chromedriver
+npm run test:worker      # API and database only
+npm run test:client      # React components only
+npm run test:watch       # worker + client, re-run on save
+
+npx vitest run test/worker/api.test.ts           # a single file
+npx vitest run --project client -t "collapse"    # tests whose name matches
+npx vitest run --project e2e -t "PIA3"           # one case of the test plan
+```
+
+The e2e suite uses `/usr/bin/chromium` and `/usr/bin/chromedriver` by default; override them with `CHROME_BIN`, `CHROMEDRIVER_PATH` and `E2E_PORT`. The PIC3 test opens the real Instagram link, so it needs internet access.
+
+`npm run build` also type-checks the tests, and `npm run lint` runs oxlint.
+
+---
+
+## Local development
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) LTS and npm.
+- Chromium and chromedriver, only for the Selenium suite.
+- No Cloudflare account is needed for local development: Wrangler is installed as a project dependency and runs the Worker and D1 locally.
+
+### First run
+```bash
 npm install
 
-# Desactivar la autenticación en local (el panel de admin y la API de escritura
-# requieren Cloudflare Access, que solo existe una vez desplegado)
+# Skip Cloudflare Access locally (it only exists in production).
 cp .dev.vars.example .dev.vars
 
-# Crear la base de datos D1 local y aplicar las migraciones
+# Create the local D1 database and its tables.
 npm run db:migrate:local
 
-# Arrancar el entorno de desarrollo (Vite + Worker con HMR)
+# Start Vite + the Worker (hot reload for both).
 npm run dev
 ```
 
-La carta está en `http://localhost:5173/` y el panel de administración en `http://localhost:5173/admin/`.
+- Menu: http://localhost:5173/
+- Admin panel: http://localhost:5173/admin/ (no login locally)
 
-Otros comandos:
+The local database lives in `.wrangler/state/` (git-ignored). Each `database_id` in `wrangler.jsonc` gets its own local database, so after changing the ID run `npm run db:migrate:local` again.
+
+### Testing on your phone
+Start the dev server on your network and open the "Network" address it prints from a phone on the same Wi-Fi:
 
 ```bash
-npm run build        # Comprobación de tipos y build de producción
-npm run lint         # Linter (oxlint)
-npm run cf-typegen   # Regenerar tipos tras cambiar los bindings en wrangler.jsonc
+npm run dev -- --host
 ```
 
-### Datos del restaurante
+If your machine runs a firewall (for example `ufw`), allow port 5173 from your local network while testing, and remove the rule afterwards. While the server runs with `--host`, anyone on that network can open the admin panel, because local development skips the login.
 
-La dirección, el teléfono (también usado para el enlace de WhatsApp) y la cuenta de Instagram están en [`src/config.ts`](src/config.ts). El logo es [`src/assets/donburi-logo.svg`](src/assets/donburi-logo.svg) (en la carta se usa `donburi-logo-light.svg`, con el kanji en el color claro, dentro del marco [`src/assets/logo-marco.svg`](src/assets/logo-marco.svg)), la ilustración de bienvenida [`src/assets/gato-donburi.svg`](src/assets/gato-donburi.svg), el fondo del pie de página [`src/assets/header-fondo.svg`](src/assets/header-fondo.svg) y el fondo de la página [`src/assets/seigaiha.svg`](src/assets/seigaiha.svg). La tipografía Shippori Mincho se sirve desde la propia web (paquete `@fontsource/shippori-mincho`); los caracteres japoneses se descargan por fragmentos, solo los que aparecen en la carta.
-
-## Tests
-
+### Other commands
 ```bash
-npm test              # Tests del Worker + D1 y del cliente React
-npm run test:worker   # Solo la API (se ejecuta en workerd con una D1 local)
-npm run test:client   # Solo los componentes React (jsdom)
-npm run test:e2e      # Pruebas de integración con Selenium (PIC1–PIC3, PIA1–PIA8)
-npx vitest run test/worker/api.test.ts           # Un único fichero
-npx vitest run --project worker -t "duplicate"   # Tests cuyo nombre coincide
+npm run build        # type-check everything (including tests) and build for production
+npm run lint         # oxlint
+npm run preview      # build and serve the production build locally
+npm run cf-typegen   # regenerate worker-configuration.d.ts after editing wrangler.jsonc
 ```
 
-Las pruebas de Selenium arrancan su propio servidor de desarrollo (puerto 5317) con una base de datos D1 local independiente (`.wrangler/e2e-state`) y Chromium en modo headless. Por defecto usan `/usr/bin/chromium` y `/usr/bin/chromedriver`; se pueden cambiar con las variables `CHROME_BIN` y `CHROMEDRIVER_PATH`.
+### Restaurant details and artwork
+- Address, phone (also used for the WhatsApp link) and Instagram handle: [`src/config.ts`](src/config.ts).
+- Logo, frame, footer band, background pattern and opening illustration: [`src/assets/`](src/assets). The seigaiha pattern colours are hard-coded in `seigaiha.svg`; keep them in sync with `--paper` in `src/index.css`.
 
-## Despliegue
+---
 
-Todo (frontend y API) se despliega como un único Cloudflare Worker con Wrangler. Antes del primer despliegue:
+## Deploying to Cloudflare
 
-1. Crear la base de datos con `npx wrangler d1 create donburi-db` y copiar su `database_id` en `wrangler.jsonc`.
-2. Crear una aplicación de Cloudflare Access (self-hosted) sobre la dirección del Worker con las rutas `admin`, `api/section` y `api/dish`, con una política que solo permita el correo del administrador, y rellenar `ACCESS_TEAM_DOMAIN` y `ACCESS_AUD` en `wrangler.jsonc`.
-3. Guardar ese mismo correo como secret del Worker (varios correos, separados por comas):
-   ```bash
-   npx wrangler secret put ADMIN_EMAILS
-   ```
-   Es una segunda barrera: aunque la política de Access se cambie por error, el Worker solo acepta a los correos de esta lista.
+You need a Cloudflare account. Steps 1–2 and 4–5 are one-time setup; after that, deploying is just step 6.
 
-El Worker verifica el token de Access en cada petición de administración y las rechaza si falta cualquiera de estos valores.
-
+### 1. Log in
 ```bash
-# Aplicar migraciones en producción
+npx wrangler login
+```
+
+### 2. Create the database and its tables
+```bash
+npx wrangler d1 create donburi-db
+```
+Copy the printed `database_id` into `wrangler.jsonc` (`d1_databases[0].database_id`), then:
+```bash
 npx wrangler d1 migrations apply donburi-db --remote
+```
+Run the same `migrations apply … --remote` command whenever a new file is added to `migrations/`, **before** deploying the code that needs it.
 
-# Desplegar
+### 3. First deploy
+```bash
+npm run deploy
+```
+This builds the app and publishes the Worker at `https://donburi-web.<your-subdomain>.workers.dev`. The public menu works straight away; the admin routes return an error until authentication is set up — they fail closed.
+
+### 4. Set up Cloudflare Access
+In the Cloudflare dashboard:
+1. Open **Zero Trust**, choose a team name and the **Free** plan.
+2. Go to **Access → Applications → Add an application → Self-hosted** and add, **in the same application**, three destinations on the Worker's hostname with these paths: `admin`, `api/section`, `api/dish`.
+3. Add a policy: **Allow** → Include → **Emails** → the administrator's email.
+4. Copy the team domain (`<team>.cloudflareaccess.com`) and the application's **AUD tag** into `wrangler.jsonc`:
+   ```jsonc
+   "vars": {
+     "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+     "ACCESS_AUD": "<AUD tag>"
+   }
+   ```
+   These values are identifiers, not secrets (they appear in the login redirect), so they can be committed.
+
+Do **not** use the Worker-level *Access* tab or the "Enable Cloudflare Access" switch on the `workers.dev` route: it would put the public menu behind the login too.
+
+### 5. Store the administrator email as a secret
+```bash
+npx wrangler secret put ADMIN_EMAILS
+```
+Enter the administrator email (several can be separated by commas). Do this **before** deploying code that requires it; otherwise the admin panel stays locked (HTTP 500) until the secret exists.
+
+### 6. Deploy
+```bash
 npm run deploy
 ```
 
-## Roadmap
+### 7. Verify
+- `/` and `/api/menu` load without logging in.
+- `/admin/` redirects to the Cloudflare login; after entering the one-time code sent to the administrator's email, the panel opens.
+- Any other email is refused by Access; if it ever got through, the Worker answers *"Tu cuenta no tiene permiso para administrar la carta."* (HTTP 403).
 
-- [x] Estructura inicial del proyecto (React + Workers)
-- [x] Esquema y migraciones de D1
-- [x] API de lectura de la carta
-- [x] Página pública de la carta
-- [ ] Selector de idioma
-- [x] Autenticación del panel de admin con Cloudflare Access (verificación del token en el Worker)
-- [x] CRUD de secciones y platos
-- [x] Tests (Worker, cliente React e integración con Selenium)
-- [ ] Generación del código QR
-- [ ] Despliegue en Cloudflare
+To remove everything later: `npx wrangler delete --name donburi-web`, `npx wrangler d1 delete donburi-db`, and delete the Access application and its policies in Zero Trust.
+
+---
+
+## Project structure
+
+```
+├── worker/              Cloudflare Worker: router, auth, validation, D1 queries
+├── shared/types.ts      API types shared by the Worker and the React app
+├── src/                 React app
+│   ├── pages/           MenuPage (public) and AdminPage
+│   ├── components/      Menu components; admin/ for the panel
+│   ├── hooks/           useShowOnScrollUp
+│   ├── assets/          Logo, frame, footer band, background and illustration (SVG)
+│   ├── api.ts           Typed API client
+│   └── config.ts        Restaurant contact details
+├── migrations/          D1 schema, applied in order
+├── test/
+│   ├── worker/          API + auth tests (workerd)
+│   ├── client/          React component tests (jsdom)
+│   └── e2e/             Selenium integration tests
+├── wrangler.jsonc       Worker, assets, D1 binding and Access settings
+├── vite.config.ts       Vite + Cloudflare plugin
+├── vitest.config.ts     The three test projects
+├── requirements.md      Functional requirements and test plan (Spanish)
+└── CLAUDE.md            Notes for AI coding assistants
+```
+
+---
+
+## Status and roadmap
+
+- [x] Public menu: sections, dishes, Japanese titles, spiciness, collapsible sections, contact footer
+- [x] Opening screen and scroll-aware logo header
+- [x] Admin panel: CRUD for sections and dishes, drag-and-drop ordering
+- [x] Cloudflare Access login plus Worker-side token and email verification
+- [x] Worker, React and Selenium test suites
+- [x] Deployed on Cloudflare Workers + D1
+- [ ] Language switcher (Spanish, English, German, French, Portuguese) — requirement CL1.4
+- [ ] QR code for the tables

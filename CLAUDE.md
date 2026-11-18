@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Digital menu (carta) web app for the Donburi Ramen Bar: a public mobile-first menu reached by QR code (`/`), plus an `/admin/` panel to manage sections and dishes. Project docs (`README.md`, `requirements.md`) and all user-facing UI/API text are in Spanish.
+Digital menu (carta) web app for the Donburi Ramen Bar: a public mobile-first menu reached by QR code (`/`), plus an `/admin/` panel to manage sections and dishes. `requirements.md` and all user-facing UI/API text are in Spanish; `README.md` and code are in English (the README documents architecture, infrastructure, tests, local development and deployment — keep it in sync).
 
-`requirements.md` is the source of truth for the spec; `README.md` summarizes it. Implement only what `requirements.md` specifies and ask the user before adding anything beyond it (especially auth-related work). The language switcher (CL1.4) is intentionally not implemented yet.
+`requirements.md` is the source of truth for the spec. Implement only what `requirements.md` specifies and ask the user before adding anything beyond it (especially auth-related work). The language switcher (CL1.4) is intentionally not implemented yet.
 
 ## Commands
 
